@@ -77,12 +77,7 @@
     "dark": "https://i.imgur.com/rm9b54K.gif"
   },
   "navbar": {
-    "links": [],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "#"
-    }
+    "links": []
   },
   "contextual": {
     "options": [
