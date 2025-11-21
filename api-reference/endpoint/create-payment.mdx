@@ -1,0 +1,331 @@
+---
+title: 'Criar Pagamento'
+description: 'Cria uma nova cobrança PIX e retorna o QR Code e link de pagamento'
+---
+
+## Endpoint
+
+<CodeGroup>
+
+```http
+POST /payment/create
+```
+
+</CodeGroup>
+
+Cria uma nova cobrança PIX e retorna o QR Code e link de pagamento.
+
+## Headers
+
+| Header | Tipo | Obrigatório | Descrição |
+|--------|------|-------------|-----------|
+| `Authorization` | string | Sim | Bearer token de autenticação |
+| `Content-Type` | string | Sim | application/json |
+
+## Body Parameters
+
+<ParamField body="correlationID" type="string" required>
+  ID único para rastreamento do pagamento. Este ID deve ser único por usuário e não pode ser reutilizado.
+</ParamField>
+
+<ParamField body="value" type="number" required>
+  Valor em reais do pagamento (mínimo R$ 0,01)
+</ParamField>
+
+<ParamField body="comment" type="string">
+  Comentário ou descrição do pagamento
+</ParamField>
+
+<ParamField body="expiresIn" type="number">
+  Tempo em segundos até a expiração do pagamento (mínimo 300 segundos)
+</ParamField>
+
+<ParamField body="expiresDate" type="string">
+  Data de expiração no formato ISO 8601 (ex: "2024-12-31T23:59:59Z")
+</ParamField>
+
+<ParamField body="customer" type="object">
+  Dados do cliente (opcional)
+</ParamField>
+
+<ParamField body="customer.name" type="string">
+  Nome do cliente
+</ParamField>
+
+<ParamField body="customer.email" type="string">
+  Email do cliente
+</ParamField>
+
+<ParamField body="customer.phone" type="string">
+  Telefone do cliente (formato: +5511999999999)
+</ParamField>
+
+<ParamField body="customer.taxID" type="object">
+  Documento fiscal do cliente
+</ParamField>
+
+<ParamField body="customer.taxID.taxID" type="string">
+  Número do documento (CPF ou CNPJ)
+</ParamField>
+
+<ParamField body="customer.taxID.type" type="string">
+  Tipo do documento: "BR:CPF" ou "BR:CNPJ"
+</ParamField>
+
+## Request Example
+
+<RequestExample>
+
+```json
+{
+  "correlationID": "pedido-123",
+  "value": 10.50,
+  "comment": "Pagamento do pedido #123",
+  "expiresIn": 3600,
+  "expiresDate": "2024-12-31T23:59:59Z",
+  "customer": {
+    "name": "João Silva",
+    "email": "joao@example.com",
+    "phone": "+5511999999999",
+    "taxID": {
+      "taxID": "12345678900",
+      "type": "BR:CPF"
+    }
+  }
+}
+```
+
+</RequestExample>
+
+## Response Examples
+
+### Sucesso (200)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "ACTIVE",
+    "paymentLinkUrl": "https://openpix.com.br/pay/...",
+    "qrCodeImage": "https://api.openpix.com.br/api/qrcode/base64/...",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": null,
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Erro - Dados Inválidos (400)
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "Valor e correlationID são obrigatórios."
+}
+```
+
+</ResponseExample>
+
+### Erro - Token Inválido (401)
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "Token de API inválido."
+}
+```
+
+</ResponseExample>
+
+## Exemplos de Código
+
+### cURL
+
+```bash
+curl -X POST \
+  https://flowapplications.com.br/api/v1/payment/create \
+  -H "Authorization: Bearer seu_token_aqui" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "comment": "Pagamento do pedido #123"
+  }'
+```
+
+### Python
+
+```python
+import requests
+
+BASE_URL = "https://flowapplications.com.br/api/v1"
+API_TOKEN = "seu_token_aqui"
+
+headers = {
+    "Authorization": f"Bearer {API_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+def criar_pagamento(correlation_id, valor, comentario=None):
+    url = f"{BASE_URL}/payment/create"
+    data = {
+        "correlationID": correlation_id,
+        "value": valor
+    }
+    if comentario:
+        data["comment"] = comentario
+    
+    response = requests.post(url, json=data, headers=headers)
+    return response.json()
+
+# Exemplo de uso
+pagamento = criar_pagamento("pedido-123", 10.50, "Pagamento do pedido #123")
+print(pagamento)
+```
+
+### Node.js
+
+```javascript
+const axios = require('axios');
+
+const BASE_URL = 'https://flowapplications.com.br/api/v1';
+const API_TOKEN = 'seu_token_aqui';
+
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Authorization': `Bearer ${API_TOKEN}`,
+    'Content-Type': 'application/json'
+  }
+});
+
+async function criarPagamento(correlationID, valor, comentario = null) {
+  const data = {
+    correlationID,
+    value: valor
+  };
+  
+  if (comentario) {
+    data.comment = comentario;
+  }
+  
+  try {
+    const response = await api.post('/payment/create', data);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao criar pagamento:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Exemplo de uso
+(async () => {
+  try {
+    const pagamento = await criarPagamento('pedido-123', 10.50, 'Pagamento do pedido #123');
+    console.log('Pagamento criado:', pagamento);
+  } catch (error) {
+    console.error('Erro:', error);
+  }
+})();
+```
+
+### PHP
+
+```php
+<?php
+
+$baseUrl = "https://flowapplications.com.br/api/v1";
+$apiToken = "seu_token_aqui";
+
+function criarPagamento($correlationID, $valor, $comentario = null) {
+    global $baseUrl, $apiToken;
+    
+    $data = [
+        "correlationID" => $correlationID,
+        "value" => $valor
+    ];
+    
+    if ($comentario) {
+        $data["comment"] = $comentario;
+    }
+    
+    $ch = curl_init($baseUrl . "/payment/create");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "Authorization: Bearer " . $apiToken,
+        "Content-Type: application/json"
+    ]);
+    
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    return json_decode($response, true);
+}
+
+// Exemplo de uso
+$pagamento = criarPagamento("pedido-123", 10.50, "Pagamento do pedido #123");
+print_r($pagamento);
+
+?>
+```
+
+### JavaScript/TypeScript
+
+```typescript
+const BASE_URL = "https://flowapplications.com.br/api/v1";
+const API_TOKEN = "seu_token_aqui";
+
+interface CreatePaymentRequest {
+  correlationID: string;
+  value: number;
+  comment?: string;
+  expiresIn?: number;
+  expiresDate?: string;
+  customer?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    taxID?: {
+      taxID: string;
+      type: "BR:CPF" | "BR:CNPJ";
+    };
+  };
+}
+
+async function criarPagamento(data: CreatePaymentRequest) {
+  const response = await fetch(`${BASE_URL}/payment/create`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${API_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+// Exemplo de uso
+const pagamento = await criarPagamento({
+  correlationID: "pedido-123",
+  value: 10.50,
+  comment: "Pagamento do pedido #123"
+});
+console.log(pagamento);
+```
+

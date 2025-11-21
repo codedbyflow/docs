@@ -1,33 +1,58 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'Introdução à API FlowPay'
+description: 'Documentação completa da API FlowPay para integração de pagamentos PIX'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Bem-vindo à API FlowPay
 
-## Welcome
+A API FlowPay permite que você integre facilmente pagamentos PIX em seu sistema. Nossa API é RESTful, simples de usar e oferece todas as funcionalidades necessárias para processar pagamentos via PIX.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+## Autenticação
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+Todas as requisições devem incluir seu token de API no header `Authorization`:
 
-## Authentication
-
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
-
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
 ```
+Authorization: Bearer {seu_token_api}
+```
+
+Seu token de API pode ser obtido no dashboard após aprovação da sua solicitação.
+
+<Warning>
+Mantenha seu token de API seguro e nunca o compartilhe publicamente. O token deve ser mantido como uma variável de ambiente ou configuração segura.
+</Warning>
+
+## Base URL
+
+Todas as requisições devem ser feitas para a seguinte base URL:
+
+```
+https://flowapplications.com.br/api/v1
+```
+
+## Status de Pagamento
+
+Os pagamentos podem ter os seguintes status:
+
+- **ACTIVE**: Pagamento criado e aguardando pagamento
+- **COMPLETED**: Pagamento confirmado e concluído
+- **EXPIRED**: Pagamento expirado (não foi pago dentro do prazo)
+
+## Limites e Restrições
+
+- **Valor mínimo**: R$ 0,01
+- **Valor máximo**: Sem limite
+- **Tempo de expiração mínimo**: 300 segundos (5 minutos)
+- **CorrelationID**: Um `correlationID` só pode ser usado uma vez por usuário
+- **Segurança**: O token de API deve ser mantido seguro e não compartilhado
+
+## Códigos de Erro HTTP
+
+- **200**: Sucesso
+- **400**: Requisição inválida (dados faltando ou incorretos)
+- **401**: Não autorizado (token inválido ou ausente)
+- **404**: Recurso não encontrado
+- **500**: Erro interno do servidor
+
+## Suporte
+
+Para dúvidas ou problemas, entre em contato através do dashboard ou envie um email para suporte.

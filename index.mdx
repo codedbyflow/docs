@@ -1,97 +1,61 @@
 ---
-title: "FlowPay"
-description: "Bem-vindo à documentação do FlowPay"
+title: "FlowPay API"
+description: "Documentação completa da API FlowPay para integração de pagamentos PIX"
 ---
 
-## Começando
+## Bem-vindo à API FlowPay
 
-Tenha seu site de documentação funcionando em minutos.
-
-  <Card
-    title="Comece aqui"
-    icon="rocket"
-    href="/quickstart"
-    horizontal
-  >
-  Siga nosso guia de início rápido em três etapas.
-  </Card>
-
-## Personalize
-
-Projete um site de documentação que tenha uma ótima aparência e capacite seus usuários.
-
-<Columns cols={2}>
-  <Card
-    title="Edite localmente"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edite sua documentação localmente e visualize em tempo real.
-  </Card>
-  <Card
-    title="Personalize seu site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Personalize o design e as cores do seu site para combinar com sua marca.
-  </Card>
-    <Card
-    title="Configure a navegação"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize sua documentação para ajudar os usuários a encontrar o que precisam e ter sucesso com seu produto.
-  </Card>
-  <Card
-    title="Documentação da API"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Gere automaticamente documentação de API a partir de especificações OpenAPI.
-  </Card>
-</Columns>
-
-## Crie páginas bonitas
-
-Tudo que você precisa para criar documentação de classe mundial.
-
-<Columns cols={2}>
-  <Card
-    title="Escreva com MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX para estilizar suas páginas de documentação.
-  </Card>
-  <Card
-    title="Exemplos de código"
-    icon="code"
-    href="/essentials/code"
-  >
-    Adicione exemplos de código para demonstrar como usar seu produto.
-  </Card>
-  <Card
-    title="Imagens"
-    icon="image"
-    href="/essentials/images"
-  >
-    Exiba imagens e outras mídias.
-  </Card>
-  <Card
-    title="Trechos reutilizáveis"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Escreva uma vez e reutilize em toda sua documentação.
-  </Card>
-</Columns>
-
-## Precisa de inspiração?
+A API FlowPay permite que você integre facilmente pagamentos PIX em seu sistema de forma rápida e segura.
 
 <Card
-  title="Veja exemplos completos"
-  icon="stars"
-  href="https://mintlify.com/customers"
+  title="Introdução à API"
+  icon="rocket"
+  href="/api-reference/introduction"
+  horizontal
 >
-  Navegue por nossa vitrine de sites de documentação excepcionais.
+  Comece aqui para entender os conceitos básicos da API FlowPay.
 </Card>
+
+## Recursos Principais
+
+<Columns cols={2}>
+  <Card
+    title="Criar Pagamento"
+    icon="credit-card"
+    href="/api-reference/endpoint/create-payment"
+  >
+    Crie cobranças PIX e obtenha QR Code e link de pagamento instantaneamente.
+  </Card>
+  <Card
+    title="Verificar Pagamento"
+    icon="check-circle"
+    href="/api-reference/endpoint/verify-payment"
+  >
+    Verifique o status de qualquer pagamento usando o correlationID.
+  </Card>
+  <Card
+    title="Integração Simples"
+    icon="plug"
+    href="/api-reference/introduction"
+  >
+    Integre pagamentos PIX em minutos com nossa API RESTful simples.
+  </Card>
+  <Card
+    title="Exemplos de Código"
+    icon="code"
+    href="/api-reference/endpoint/create-payment"
+  >
+    Veja exemplos de integração em Python, Node.js, PHP, Java e mais.
+  </Card>
+</Columns>
+
+## Início Rápido
+
+1. **Obtenha seu token de API** no dashboard após aprovação da sua solicitação
+2. **Configure a autenticação** usando Bearer token no header `Authorization`
+3. **Crie seu primeiro pagamento** usando o endpoint `/payment/create`
+4. **Verifique o status** com o endpoint `/payment/verify/{correlationID}`
+
+<Note>
+  Todas as requisições devem incluir o header `Authorization: Bearer {seu_token_api}` e usar a base URL `https://flowapplications.com.br/api/v1`
+</Note>
