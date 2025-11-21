@@ -79,13 +79,14 @@ Cria um novo pagamento PIX dinâmico usando a Woovi.
 
 ```json
 {
-  "correlationID": "test-1234567890",
+  "correlationID": "pedido-123",
   "value": 10.50,
-  "comment": "Pagamento de teste",
+  "comment": "Pagamento do pedido #123",
   "expiresIn": 3600,
+  "expiresDate": "2024-12-31T23:59:59Z",
   "customer": {
-    "name": "Cliente Teste",
-    "email": "cliente@teste.com",
+    "name": "João Silva",
+    "email": "joao@example.com",
     "phone": "+5511999999999",
     "taxID": {
       "taxID": "12345678900",
@@ -99,7 +100,7 @@ Cria um novo pagamento PIX dinâmico usando a Woovi.
 
 ## Response Examples
 
-### Sucesso (200)
+### 200 OK - Sucesso
 
 <ResponseExample>
 
@@ -107,17 +108,17 @@ Cria um novo pagamento PIX dinâmico usando a Woovi.
 {
   "success": true,
   "charge": {
-    "correlationID": "test-1234567890",
+    "correlationID": "pedido-123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://flowapplications.com.br/api/v1/payment/qrcode/test-1234567890",
-    "brCode": "00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-426614174000520400005303986540510.505802BR5925NOME DO BENEFICIARIO6009SAO PAULO62070503***6304ABCD",
-    "globalID": "630d7415-95bf-4809-b707-3755ea031677",
+    "qrCodeImage": "https://flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": null,
     "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59.000Z",
-    "createdAt": "2024-01-01T12:00:00.000Z",
-    "updatedAt": "2024-01-01T12:00:00.000Z"
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
   }
 }
 ```
@@ -144,7 +145,7 @@ O campo `paymentLinkUrl` foi removido da resposta da API. Use o `qrCodeImage` ou
 
 ## Erros
 
-### 400 Bad Request
+### 400 Bad Request - Erro
 
 Valores obrigatórios faltando ou inválidos.
 
@@ -159,7 +160,7 @@ Valores obrigatórios faltando ou inválidos.
 
 </ResponseExample>
 
-### 401 Unauthorized
+### 401 Unauthorized - Erro
 
 Token inválido ou não fornecido.
 
@@ -174,7 +175,7 @@ Token inválido ou não fornecido.
 
 </ResponseExample>
 
-### 500 Internal Server Error
+### 500 Internal Server Error - Erro
 
 Erro interno do servidor ou configuração da Woovi não encontrada.
 

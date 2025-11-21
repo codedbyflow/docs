@@ -41,7 +41,7 @@ Authorization: Bearer seu_token_aqui
 
 ## Response Examples
 
-### Sucesso (200)
+### 200 OK - Sucesso
 
 <ResponseExample>
 
@@ -49,17 +49,17 @@ Authorization: Bearer seu_token_aqui
 {
   "success": true,
   "charge": {
-    "correlationID": "test-1234567890",
+    "correlationID": "pedido-123",
     "value": 10.50,
     "status": "COMPLETED",
-    "qrCodeImage": "https://flowapplications.com.br/api/v1/payment/qrcode/test-1234567890",
-    "brCode": "00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-426614174000520400005303986540510.505802BR5925NOME DO BENEFICIARIO6009SAO PAULO62070503***6304ABCD",
-    "globalID": "630d7415-95bf-4809-b707-3755ea031677",
+    "qrCodeImage": "https://flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": "E1234567820240101120000",
     "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59.000Z",
-    "createdAt": "2024-01-01T12:00:00.000Z",
-    "updatedAt": "2024-01-01T12:05:30.000Z"
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:05:30Z"
   }
 }
 ```
@@ -90,7 +90,7 @@ O campo `status` pode ter os seguintes valores:
 
 ## Erros
 
-### 400 Bad Request
+### 400 Bad Request - Erro
 
 `correlationID` não fornecido.
 
@@ -105,7 +105,7 @@ O campo `status` pode ter os seguintes valores:
 
 </ResponseExample>
 
-### 401 Unauthorized
+### 401 Unauthorized - Erro
 
 Token inválido ou não fornecido.
 
@@ -120,7 +120,7 @@ Token inválido ou não fornecido.
 
 </ResponseExample>
 
-### 404 Not Found
+### 404 Not Found - Erro
 
 Pagamento não encontrado ou não pertence ao usuário autenticado.
 
@@ -135,7 +135,7 @@ Pagamento não encontrado ou não pertence ao usuário autenticado.
 
 </ResponseExample>
 
-### 500 Internal Server Error
+### 500 Internal Server Error - Erro
 
 Erro interno do servidor ou configuração da Woovi não encontrada.
 
