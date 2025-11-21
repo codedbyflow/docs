@@ -1,8 +1,8 @@
-# Mintlify Starter Kit
+# FlowPay Documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+Use este kit de documentação para ter sua documentação implantada e pronta para personalização.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+Este kit de documentação do FlowPay contém exemplos com
 
 - Guide pages
 - Navigation
@@ -10,34 +10,34 @@ Click the green **Use this template** button at the top of this repo to copy the
 - API reference pages
 - Use of popular components
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
+**[Siga o guia de início rápido](/quickstart)**
 
-## Development
+## Desenvolvimento
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+Instale a [CLI do Mintlify](https://www.npmjs.com/package/mint) para visualizar suas alterações de documentação localmente. Para instalar, use o seguinte comando:
 
 ```
 npm i -g mint
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+Execute o seguinte comando na raiz da sua documentação, onde seu arquivo `docs.json` está localizado:
 
 ```
 mint dev
 ```
 
-View your local preview at `http://localhost:3000`.
+Visualize sua prévia local em `http://localhost:3000`.
 
-## Publishing changes
+## Publicando alterações
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+Instale o aplicativo GitHub a partir do seu dashboard para propagar alterações do seu repositório para a implantação. As alterações são implantadas em produção automaticamente após o push para a branch padrão.
 
-## Need help?
+## Precisa de ajuda?
 
-### Troubleshooting
+### Solução de problemas
 
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
+- Se seu ambiente de desenvolvimento não estiver funcionando: Execute `mint update` para garantir que você tenha a versão mais recente da CLI.
+- Se uma página carregar como 404: Certifique-se de estar executando em uma pasta com um `docs.json` válido.
 
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+### Recursos
+- [Documentação do Mintlify](https://mintlify.com/docs)
