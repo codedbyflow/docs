@@ -1,0 +1,652 @@
+---
+title: 'HTML & JavaScript'
+description: 'Implementação completa da API FlowPay em JavaScript puro (HTML estático) com exemplos práticos'
+icon: 'html'
+---
+
+## Implementação HTML & JavaScript
+
+Guia completo para integrar a API FlowPay em páginas HTML estáticas usando JavaScript puro (vanilla JS) ou Fetch API.
+
+<Card
+  title="Repositório de exemplo"
+  icon="github"
+  href="#"
+>
+  Veja o código completo no GitHub
+</Card>
+
+## Configuração Base
+
+<CodeGroup>
+
+```javascript Fetch API
+// flowpay.js
+class FlowPayAPI {
+    constructor(apiToken) {
+        this.baseURL = 'https://flowapplications.com.br/api/v1';
+        this.apiToken = apiToken || '';
+        
+        if (!this.apiToken) {
+            console.error('⚠️ Token de API não fornecido');
+        }
+    }
+    
+    async makeRequest(method, endpoint, data = null) {
+        const url = `${this.baseURL}${endpoint}`;
+        
+        const options = {
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${this.apiToken}`,
+                'Content-Type': 'application/json',
+            },
+        };
+        
+        if (data && method === 'POST') {
+            options.body = JSON.stringify(data);
+        }
+        
+        try {
+            const response = await fetch(url, options);
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.error || `Erro HTTP ${response.status}`);
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('❌ Erro ao fazer requisição:', error);
+            throw error;
+        }
+    }
+    
+    async createPayment(data) {
+        return this.makeRequest('POST', '/payment/create', data);
+    }
+    
+    async verifyPayment(correlationID) {
+        return this.makeRequest('GET', `/payment/verify/${correlationID}`);
+    }
+}
+
+// Exportar para uso global ou módulo
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = FlowPayAPI;
+} else {
+    window.FlowPayAPI = FlowPayAPI;
+}
+```
+
+```javascript XMLHttpRequest
+// flowpay-xhr.js
+class FlowPayAPI {
+    constructor(apiToken) {
+        this.baseURL = 'https://flowapplications.com.br/api/v1';
+        this.apiToken = apiToken || '';
+    }
+    
+    makeRequest(method, endpoint, data = null) {
+        return new Promise((resolve, reject) => {
+            const url = `${this.baseURL}${endpoint}`;
+            const xhr = new XMLHttpRequest();
+            
+            xhr.open(method, url, true);
+            xhr.setRequestHeader('Authorization', `Bearer ${this.apiToken}`);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const result = JSON.parse(xhr.responseText);
+                            resolve(result);
+                        } catch (error) {
+                            reject(new Error('Erro ao parsear resposta'));
+                        }
+                    } else {
+                        try {
+                            const error = JSON.parse(xhr.responseText);
+                            reject(new Error(error.error || `Erro HTTP ${xhr.status}`));
+                        } catch (e) {
+                            reject(new Error(`Erro HTTP ${xhr.status}`));
+                        }
+                    }
+                }
+            };
+            
+            xhr.onerror = function() {
+                reject(new Error('Erro de conexão'));
+            };
+            
+            if (data && method === 'POST') {
+                xhr.send(JSON.stringify(data));
+            } else {
+                xhr.send();
+            }
+        });
+    }
+    
+    createPayment(data) {
+        return this.makeRequest('POST', '/payment/create', data);
+    }
+    
+    verifyPayment(correlationID) {
+        return this.makeRequest('GET', `/payment/verify/${correlationID}`);
+    }
+}
+```
+
+</CodeGroup>
+
+## Criar Pagamento
+
+<CodeGroup>
+
+```html Exemplo Completo
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowPay - Criar Pagamento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #00439F;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #003080;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .qr-code {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .qr-code img {
+            max-width: 300px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>💳 Criar Pagamento PIX</h1>
+    
+    <form id="paymentForm">
+        <div class="form-group">
+            <label for="apiToken">Token de API:</label>
+            <input type="password" id="apiToken" required placeholder="Seu token da API FlowPay">
+        </div>
+        
+        <div class="form-group">
+            <label for="correlationID">ID de Correlação:</label>
+            <input type="text" id="correlationID" required placeholder="pedido-123">
+        </div>
+        
+        <div class="form-group">
+            <label for="value">Valor (R$):</label>
+            <input type="number" id="value" step="0.01" min="0.01" required placeholder="10.50">
+        </div>
+        
+        <div class="form-group">
+            <label for="comment">Comentário (opcional):</label>
+            <textarea id="comment" rows="3" placeholder="Pagamento do pedido #123"></textarea>
+        </div>
+        
+        <button type="submit" id="submitBtn">Criar Pagamento</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        // Incluir flowpay.js aqui ou usar o código inline
+        const api = new FlowPayAPI('');
+        
+        document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const resultDiv = document.getElementById('result');
+            const apiToken = document.getElementById('apiToken').value;
+            
+            // Atualizar token
+            api.apiToken = apiToken;
+            
+            // Desabilitar botão
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Criando pagamento...';
+            resultDiv.innerHTML = '';
+            
+            try {
+                const data = {
+                    correlationID: document.getElementById('correlationID').value,
+                    value: parseFloat(document.getElementById('value').value),
+                    comment: document.getElementById('comment').value || undefined,
+                    expiresIn: 3600
+                };
+                
+                const resultado = await api.createPayment(data);
+                
+                if (resultado.success && resultado.charge) {
+                    const charge = resultado.charge;
+                    
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h2>✅ Pagamento criado com sucesso!</h2>
+                        <p><strong>ID:</strong> ${charge.correlationID}</p>
+                        <p><strong>Valor:</strong> R$ ${charge.value.toFixed(2)}</p>
+                        <p><strong>Status:</strong> ${charge.status}</p>
+                        
+                        <div class="qr-code">
+                            <h3>QR Code PIX</h3>
+                            <img src="${charge.qrCodeImage}" alt="QR Code PIX">
+                        </div>
+                        
+                        <p><strong>BR Code:</strong></p>
+                        <textarea readonly style="width: 100%; height: 60px; font-family: monospace;">${charge.brCode}</textarea>
+                        
+                        <p><strong>Link de Pagamento:</strong></p>
+                        <a href="${charge.paymentLinkUrl}" target="_blank">${charge.paymentLinkUrl}</a>
+                    `;
+                } else {
+                    throw new Error(resultado.error || 'Erro desconhecido');
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h2>❌ Erro ao criar pagamento</h2>
+                    <p>${error.message}</p>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Criar Pagamento';
+            }
+        });
+    </script>
+    
+    <script src="flowpay.js"></script>
+</body>
+</html>
+```
+
+```javascript Função Simples
+// criar_pagamento.js
+async function criarPagamento(apiToken, correlationID, valor, comentario = null) {
+    const api = new FlowPayAPI(apiToken);
+    
+    try {
+        const data = {
+            correlationID: correlationID,
+            value: valor
+        };
+        
+        if (comentario) {
+            data.comment = comentario;
+        }
+        
+        const resultado = await api.createPayment(data);
+        
+        if (resultado.success && resultado.charge) {
+            const charge = resultado.charge;
+            console.log('✅ Pagamento criado com sucesso!');
+            console.log('📱 Link:', charge.paymentLinkUrl);
+            console.log('🔲 QR Code:', charge.qrCodeImage);
+            console.log('📋 BR Code:', charge.brCode);
+            return charge;
+        } else {
+            throw new Error(resultado.error || 'Erro desconhecido');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao criar pagamento:', error.message);
+        throw error;
+    }
+}
+
+// Exemplo de uso
+(async () => {
+    try {
+        const pagamento = await criarPagamento(
+            'seu_token_aqui',
+            'pedido-123',
+            10.50,
+            'Pagamento do pedido #123'
+        );
+        console.log('Pagamento:', pagamento);
+    } catch (error) {
+        console.error('Erro:', error);
+    }
+})();
+```
+
+</CodeGroup>
+
+## Verificar Pagamento
+
+<CodeGroup>
+
+```html Página de Verificação
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowPay - Verificar Pagamento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #00439F;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .active {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+        }
+        .completed {
+            background-color: #d4edda;
+            border: 1px solid #28a745;
+        }
+        .expired {
+            background-color: #f8d7da;
+            border: 1px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Verificar Pagamento PIX</h1>
+    
+    <form id="verifyForm">
+        <div class="form-group">
+            <label for="apiToken">Token de API:</label>
+            <input type="password" id="apiToken" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="correlationID">ID de Correlação:</label>
+            <input type="text" id="correlationID" required placeholder="pedido-123">
+        </div>
+        
+        <button type="submit">Verificar Pagamento</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script src="flowpay.js"></script>
+    <script>
+        const api = new FlowPayAPI('');
+        
+        document.getElementById('verifyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const apiToken = document.getElementById('apiToken').value;
+            const correlationID = document.getElementById('correlationID').value;
+            const resultDiv = document.getElementById('result');
+            
+            api.apiToken = apiToken;
+            
+            try {
+                const resultado = await api.verifyPayment(correlationID);
+                
+                if (resultado.success && resultado.charge) {
+                    const charge = resultado.charge;
+                    const statusClass = charge.status.toLowerCase();
+                    
+                    resultDiv.className = `status ${statusClass}`;
+                    resultDiv.innerHTML = `
+                        <h2>📊 Status do Pagamento</h2>
+                        <p><strong>ID:</strong> ${charge.correlationID}</p>
+                        <p><strong>Valor:</strong> R$ ${charge.value.toFixed(2)}</p>
+                        <p><strong>Status:</strong> ${charge.status}</p>
+                        ${charge.transactionID ? `<p><strong>Transaction ID:</strong> ${charge.transactionID}</p>` : ''}
+                        <p><strong>Criado em:</strong> ${new Date(charge.createdAt).toLocaleString('pt-BR')}</p>
+                        <p><strong>Atualizado em:</strong> ${new Date(charge.updatedAt).toLocaleString('pt-BR')}</p>
+                    `;
+                } else {
+                    throw new Error(resultado.error || 'Pagamento não encontrado');
+                }
+            } catch (error) {
+                resultDiv.className = 'status error';
+                resultDiv.innerHTML = `
+                    <h2>❌ Erro</h2>
+                    <p>${error.message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
+```
+
+```javascript Polling
+// polling.js
+async function aguardarPagamento(api, correlationID, intervalo = 5000, timeout = 300000) {
+    const inicio = Date.now();
+    
+    return new Promise((resolve, reject) => {
+        const interval = setInterval(async () => {
+            try {
+                const resultado = await api.verifyPayment(correlationID);
+                
+                if (resultado.success && resultado.charge) {
+                    const charge = resultado.charge;
+                    const status = charge.status;
+                    
+                    if (status === 'COMPLETED') {
+                        clearInterval(interval);
+                        resolve(charge);
+                    } else if (status === 'EXPIRED') {
+                        clearInterval(interval);
+                        reject(new Error('Pagamento expirado'));
+                    }
+                }
+                
+                // Verifica timeout
+                if (Date.now() - inicio > timeout) {
+                    clearInterval(interval);
+                    reject(new Error('Timeout ao aguardar pagamento'));
+                }
+            } catch (error) {
+                clearInterval(interval);
+                reject(error);
+            }
+        }, intervalo);
+    });
+}
+
+// Exemplo de uso
+(async () => {
+    try {
+        const api = new FlowPayAPI('seu_token_aqui');
+        console.log('⏳ Aguardando pagamento...');
+        const pagamento = await aguardarPagamento(api, 'pedido-123');
+        console.log('✅ Pagamento confirmado!', pagamento);
+    } catch (error) {
+        console.error('❌ Erro:', error.message);
+    }
+})();
+```
+
+</CodeGroup>
+
+## Exemplo Completo - E-commerce
+
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-commerce - Checkout</title>
+    <script src="flowpay.js"></script>
+</head>
+<body>
+    <div id="checkout">
+        <h1>Finalizar Compra</h1>
+        <button onclick="processarPagamento()">Pagar com PIX</button>
+    </div>
+    
+    <div id="payment" style="display: none;">
+        <h2>Pagamento PIX</h2>
+        <div id="qrCode"></div>
+        <div id="status"></div>
+    </div>
+    
+    <script>
+        const API_TOKEN = 'seu_token_aqui'; // Em produção, usar variável de ambiente
+        const api = new FlowPayAPI(API_TOKEN);
+        let correlationID = null;
+        
+        async function processarPagamento() {
+            try {
+                // Dados do pedido
+                const pedidoID = 'PED-' + Date.now();
+                const valor = 99.90;
+                
+                correlationID = `pedido-${pedidoID}`;
+                
+                // Criar pagamento
+                const resultado = await api.createPayment({
+                    correlationID: correlationID,
+                    value: valor,
+                    comment: `Pagamento do pedido #${pedidoID}`,
+                    expiresIn: 3600
+                });
+                
+                if (resultado.success && resultado.charge) {
+                    const charge = resultado.charge;
+                    
+                    // Mostrar QR Code
+                    document.getElementById('checkout').style.display = 'none';
+                    document.getElementById('payment').style.display = 'block';
+                    document.getElementById('qrCode').innerHTML = `
+                        <img src="${charge.qrCodeImage}" alt="QR Code PIX">
+                        <p>Escaneie o QR Code com o app do seu banco</p>
+                        <p><strong>BR Code:</strong></p>
+                        <textarea readonly>${charge.brCode}</textarea>
+                    `;
+                    
+                    // Iniciar verificação periódica
+                    verificarPagamentoPeriodicamente();
+                }
+            } catch (error) {
+                alert('Erro ao criar pagamento: ' + error.message);
+            }
+        }
+        
+        async function verificarPagamentoPeriodicamente() {
+            const interval = setInterval(async () => {
+                try {
+                    const resultado = await api.verifyPayment(correlationID);
+                    
+                    if (resultado.success && resultado.charge) {
+                        const charge = resultado.charge;
+                        document.getElementById('status').innerHTML = `
+                            <p>Status: <strong>${charge.status}</strong></p>
+                        `;
+                        
+                        if (charge.status === 'COMPLETED') {
+                            clearInterval(interval);
+                            document.getElementById('status').innerHTML = `
+                                <h3>✅ Pagamento confirmado!</h3>
+                                <p>Seu pedido será processado em breve.</p>
+                            `;
+                        } else if (charge.status === 'EXPIRED') {
+                            clearInterval(interval);
+                            document.getElementById('status').innerHTML = `
+                                <h3>⏰ Pagamento expirado</h3>
+                                <button onclick="processarPagamento()">Tentar novamente</button>
+                            `;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro ao verificar pagamento:', error);
+                }
+            }, 5000); // Verifica a cada 5 segundos
+        }
+    </script>
+</body>
+</html>
+```
+
+<Warning>
+⚠️ **Importante para produção**: Nunca exponha o token da API diretamente no código JavaScript do cliente. Use um backend como proxy ou implemente autenticação adequada.
+</Warning>
+
+<Note>
+Para produção, sempre use um backend para fazer as requisições à API FlowPay. O JavaScript no cliente deve comunicar-se com seu próprio backend, que então faz as chamadas à API FlowPay.
+</Note>
+

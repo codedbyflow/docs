@@ -1,0 +1,527 @@
+---
+title: 'Go'
+description: 'Implementação completa da API FlowPay em Go (Golang) com exemplos práticos'
+icon: 'go'
+---
+
+## Implementação Go
+
+Guia completo para integrar a API FlowPay em suas aplicações Go usando net/http ou bibliotecas HTTP modernas.
+
+<Card
+  title="Repositório de exemplo"
+  icon="github"
+  href="#"
+>
+  Veja o código completo no GitHub
+</Card>
+
+## Instalação
+
+```bash
+go mod init flowpay
+go get github.com/go-resty/resty/v2
+# ou use net/http padrão
+```
+
+## Configuração Base
+
+<CodeGroup>
+
+```go Estrutura Base
+// flowpay.go
+package flowpay
+
+import (
+    "encoding/json"
+    "errors"
+    "fmt"
+    "net/http"
+    "os"
+    "time"
+)
+
+const BaseURL = "https://flowapplications.com.br/api/v1"
+
+type Client struct {
+    BaseURL    string
+    APIToken   string
+    HTTPClient *http.Client
+}
+
+type CreatePaymentRequest struct {
+    CorrelationID string                 `json:"correlationID"`
+    Value         float64                `json:"value"`
+    Comment       string                 `json:"comment,omitempty"`
+    ExpiresIn     int                    `json:"expiresIn,omitempty"`
+    ExpiresDate   string                 `json:"expiresDate,omitempty"`
+    Customer      *Customer              `json:"customer,omitempty"`
+}
+
+type Customer struct {
+    Name  string `json:"name,omitempty"`
+    Email string `json:"email,omitempty"`
+    Phone string `json:"phone,omitempty"`
+    TaxID *TaxID `json:"taxID,omitempty"`
+}
+
+type TaxID struct {
+    TaxID string `json:"taxID"`
+    Type  string `json:"type"` // BR:CPF ou BR:CNPJ
+}
+
+type PaymentCharge struct {
+    CorrelationID  string    `json:"correlationID"`
+    Value          float64   `json:"value"`
+    Status         string    `json:"status"` // ACTIVE, COMPLETED, EXPIRED
+    PaymentLinkURL string    `json:"paymentLinkUrl"`
+    QRCodeImage    string    `json:"qrCodeImage"`
+    BRCode         string    `json:"brCode"`
+    GlobalID       string    `json:"globalID"`
+    TransactionID  *string   `json:"transactionID"`
+    ExpiresIn      *int      `json:"expiresIn,omitempty"`
+    ExpiresDate    *string   `json:"expiresDate,omitempty"`
+    CreatedAt      string    `json:"createdAt"`
+    UpdatedAt      string    `json:"updatedAt"`
+}
+
+type PaymentResponse struct {
+    Success bool          `json:"success"`
+    Charge  *PaymentCharge `json:"charge,omitempty"`
+    Error   string        `json:"error,omitempty"`
+}
+
+func NewClient(apiToken string) *Client {
+    if apiToken == "" {
+        apiToken = os.Getenv("FLOWPAY_API_TOKEN")
+    }
+    
+    return &Client{
+        BaseURL:  BaseURL,
+        APIToken: apiToken,
+        HTTPClient: &http.Client{
+            Timeout: 30 * time.Second,
+        },
+    }
+}
+
+func (c *Client) makeRequest(method, endpoint string, body interface{}) (*PaymentResponse, error) {
+    url := fmt.Sprintf("%s%s", c.BaseURL, endpoint)
+    
+    var reqBody []byte
+    var err error
+    if body != nil {
+        reqBody, err = json.Marshal(body)
+        if err != nil {
+            return nil, fmt.Errorf("erro ao serializar body: %w", err)
+        }
+    }
+    
+    req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+    if err != nil {
+        return nil, fmt.Errorf("erro ao criar requisição: %w", err)
+    }
+    
+    req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.APIToken))
+    req.Header.Set("Content-Type", "application/json")
+    
+    resp, err := c.HTTPClient.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("erro ao fazer requisição: %w", err)
+    }
+    defer resp.Body.Close()
+    
+    var paymentResp PaymentResponse
+    if err := json.NewDecoder(resp.Body).Decode(&paymentResp); err != nil {
+        return nil, fmt.Errorf("erro ao decodificar resposta: %w", err)
+    }
+    
+    if resp.StatusCode >= 400 {
+        return &paymentResp, errors.New(paymentResp.Error)
+    }
+    
+    return &paymentResp, nil
+}
+```
+
+```go Com Resty
+// flowpay_resty.go
+package flowpay
+
+import (
+    "github.com/go-resty/resty/v2"
+    "time"
+)
+
+type ClientResty struct {
+    client  *resty.Client
+    baseURL string
+}
+
+func NewClientResty(apiToken string) *ClientResty {
+    if apiToken == "" {
+        apiToken = os.Getenv("FLOWPAY_API_TOKEN")
+    }
+    
+    client := resty.New()
+    client.SetBaseURL("https://flowapplications.com.br/api/v1")
+    client.SetTimeout(30 * time.Second)
+    client.SetHeader("Authorization", fmt.Sprintf("Bearer %s", apiToken))
+    client.SetHeader("Content-Type", "application/json")
+    
+    return &ClientResty{
+        client:  client,
+        baseURL: BaseURL,
+    }
+}
+
+func (c *ClientResty) CreatePayment(req CreatePaymentRequest) (*PaymentResponse, error) {
+    var resp PaymentResponse
+    
+    httpResp, err := c.client.R().
+        SetBody(req).
+        SetResult(&resp).
+        Post("/payment/create")
+    
+    if err != nil {
+        return nil, fmt.Errorf("erro ao criar pagamento: %w", err)
+    }
+    
+    if httpResp.IsError() {
+        return &resp, errors.New(resp.Error)
+    }
+    
+    return &resp, nil
+}
+
+func (c *ClientResty) VerifyPayment(correlationID string) (*PaymentResponse, error) {
+    var resp PaymentResponse
+    
+    httpResp, err := c.client.R().
+        SetResult(&resp).
+        Get(fmt.Sprintf("/payment/verify/%s", correlationID))
+    
+    if err != nil {
+        return nil, fmt.Errorf("erro ao verificar pagamento: %w", err)
+    }
+    
+    if httpResp.IsError() {
+        return &resp, errors.New(resp.Error)
+    }
+    
+    return &resp, nil
+}
+```
+
+</CodeGroup>
+
+## Criar Pagamento
+
+<CodeGroup>
+
+```go Função Simples
+// criar_pagamento.go
+package main
+
+import (
+    "fmt"
+    "log"
+    "flowpay"
+)
+
+func main() {
+    client := flowpay.NewClient("")
+    
+    req := flowpay.CreatePaymentRequest{
+        CorrelationID: "pedido-123",
+        Value:         10.50,
+        Comment:       "Pagamento do pedido #123",
+        ExpiresIn:     3600,
+    }
+    
+    resp, err := client.CreatePayment(req)
+    if err != nil {
+        log.Fatalf("Erro ao criar pagamento: %v", err)
+    }
+    
+    if resp.Success && resp.Charge != nil {
+        charge := resp.Charge
+        fmt.Printf("✅ Pagamento criado com sucesso!\n")
+        fmt.Printf("📱 Link: %s\n", charge.PaymentLinkURL)
+        fmt.Printf("🔲 QR Code: %s\n", charge.QRCodeImage)
+        fmt.Printf("📋 BR Code: %s\n", charge.BRCode)
+    } else {
+        log.Fatalf("Erro: %s", resp.Error)
+    }
+}
+```
+
+```go Gin Framework
+// main.go
+package main
+
+import (
+    "net/http"
+    "github.com/gin-gonic/gin"
+    "flowpay"
+)
+
+func main() {
+    r := gin.Default()
+    client := flowpay.NewClient("")
+    
+    r.POST("/pagamentos/criar", func(c *gin.Context) {
+        var req flowpay.CreatePaymentRequest
+        if err := c.ShouldBindJSON(&req); err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{
+                "success": false,
+                "error":   "Dados inválidos",
+            })
+            return
+        }
+        
+        resp, err := client.CreatePayment(req)
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{
+                "success": false,
+                "error":   err.Error(),
+            })
+            return
+        }
+        
+        if resp.Success && resp.Charge != nil {
+            charge := resp.Charge
+            c.JSON(http.StatusOK, gin.H{
+                "success": true,
+                "pagamento": gin.H{
+                    "correlationID": charge.CorrelationID,
+                    "qrCode":        charge.QRCodeImage,
+                    "brCode":        charge.BRCode,
+                    "link":          charge.PaymentLinkURL,
+                },
+            })
+        } else {
+            c.JSON(http.StatusBadRequest, gin.H{
+                "success": false,
+                "error":   resp.Error,
+            })
+        }
+    })
+    
+    r.Run(":8080")
+}
+```
+
+</CodeGroup>
+
+## Verificar Pagamento
+
+<CodeGroup>
+
+```go Função Simples
+// verificar_pagamento.go
+func verificarPagamento(client *flowpay.Client, correlationID string) {
+    resp, err := client.VerifyPayment(correlationID)
+    if err != nil {
+        log.Fatalf("Erro ao verificar pagamento: %v", err)
+    }
+    
+    if resp.Success && resp.Charge != nil {
+        charge := resp.Charge
+        fmt.Printf("📊 Status: %s\n", charge.Status)
+        fmt.Printf("💰 Valor: R$ %.2f\n", charge.Value)
+        
+        if charge.Status == "COMPLETED" {
+            fmt.Println("✅ Pagamento confirmado!")
+            if charge.TransactionID != nil {
+                fmt.Printf("🆔 Transaction ID: %s\n", *charge.TransactionID)
+            }
+        } else if charge.Status == "EXPIRED" {
+            fmt.Println("⏰ Pagamento expirado")
+        }
+    } else {
+        log.Fatalf("Erro: %s", resp.Error)
+    }
+}
+```
+
+```go Polling
+// polling.go
+func aguardarPagamento(client *flowpay.Client, correlationID string, intervalo time.Duration, timeout time.Duration) (*flowpay.PaymentCharge, error) {
+    inicio := time.Now()
+    
+    for time.Since(inicio) < timeout {
+        resp, err := client.VerifyPayment(correlationID)
+        if err != nil {
+            return nil, err
+        }
+        
+        if resp.Success && resp.Charge != nil {
+            charge := resp.Charge
+            
+            if charge.Status == "COMPLETED" {
+                return charge, nil
+            } else if charge.Status == "EXPIRED" {
+                return nil, errors.New("pagamento expirado")
+            }
+            
+            fmt.Printf("⏳ Aguardando pagamento... Status: %s\n", charge.Status)
+        } else {
+            return nil, errors.New(resp.Error)
+        }
+        
+        time.Sleep(intervalo)
+    }
+    
+    return nil, errors.New("timeout ao aguardar pagamento")
+}
+```
+
+</CodeGroup>
+
+## Exemplo Completo - E-commerce
+
+```go
+// ecommerce.go
+package main
+
+import (
+    "fmt"
+    "time"
+    "flowpay"
+)
+
+type EcommercePagamento struct {
+    client *flowpay.Client
+}
+
+func NewEcommercePagamento() *EcommercePagamento {
+    return &EcommercePagamento{
+        client: flowpay.NewClient(""),
+    }
+}
+
+func (e *EcommercePagamento) CriarPagamentoPedido(pedidoID string, valor float64, cliente *flowpay.Customer) (*flowpay.PaymentCharge, error) {
+    req := flowpay.CreatePaymentRequest{
+        CorrelationID: fmt.Sprintf("pedido-%s", pedidoID),
+        Value:         valor,
+        Comment:       fmt.Sprintf("Pagamento do pedido #%s", pedidoID),
+        ExpiresIn:     3600,
+        Customer:      cliente,
+    }
+    
+    resp, err := e.client.CreatePayment(req)
+    if err != nil {
+        return nil, err
+    }
+    
+    if resp.Success && resp.Charge != nil {
+        return resp.Charge, nil
+    }
+    
+    return nil, fmt.Errorf("erro ao criar pagamento: %s", resp.Error)
+}
+
+func (e *EcommercePagamento) VerificarPagamentoPedido(pedidoID string) (bool, string) {
+    correlationID := fmt.Sprintf("pedido-%s", pedidoID)
+    resp, err := e.client.VerifyPayment(correlationID)
+    
+    if err != nil {
+        return false, "ERROR"
+    }
+    
+    if resp.Success && resp.Charge != nil {
+        return resp.Charge.Status == "COMPLETED", resp.Charge.Status
+    }
+    
+    return false, "NOT_FOUND"
+}
+
+func main() {
+    ecommerce := NewEcommercePagamento()
+    
+    cliente := &flowpay.Customer{
+        Name:  "João Silva",
+        Email: "joao@example.com",
+        Phone: "+5511999999999",
+        TaxID: &flowpay.TaxID{
+            TaxID: "12345678900",
+            Type:  "BR:CPF",
+        },
+    }
+    
+    // Criar pagamento
+    pagamento, err := ecommerce.CriarPagamentoPedido("123", 99.90, cliente)
+    if err != nil {
+        fmt.Printf("Erro: %v\n", err)
+        return
+    }
+    
+    fmt.Printf("Pagamento criado: %s\n", pagamento.CorrelationID)
+    
+    // Verificar pagamento
+    pago, status := ecommerce.VerificarPagamentoPedido("123")
+    fmt.Printf("Status: %s, Pago: %v\n", status, pago)
+}
+```
+
+## Tratamento de Erros
+
+```go
+// error_handling.go
+type FlowPayError struct {
+    Message string
+    Code    int
+}
+
+func (e *FlowPayError) Error() string {
+    return e.Message
+}
+
+func criarPagamentoSeguro(client *flowpay.Client, req flowpay.CreatePaymentRequest) (*flowpay.PaymentCharge, error) {
+    resp, err := client.CreatePayment(req)
+    if err != nil {
+        return nil, &FlowPayError{
+            Message: fmt.Sprintf("erro ao criar pagamento: %v", err),
+            Code:    500,
+        }
+    }
+    
+    if !resp.Success {
+        return nil, &FlowPayError{
+            Message: resp.Error,
+            Code:    400,
+        }
+    }
+    
+    if resp.Charge == nil {
+        return nil, &FlowPayError{
+            Message: "resposta inválida da API",
+            Code:    500,
+        }
+    }
+    
+    return resp.Charge, nil
+}
+```
+
+## Variáveis de Ambiente
+
+Use `godotenv` para carregar variáveis de ambiente:
+
+```go
+import (
+    "github.com/joho/godotenv"
+    "os"
+)
+
+func init() {
+    godotenv.Load()
+    apiToken := os.Getenv("FLOWPAY_API_TOKEN")
+}
+```
+
+<Note>
+Para produção, sempre use variáveis de ambiente para armazenar o token da API. Nunca commite o token no código fonte.
+</Note>
+

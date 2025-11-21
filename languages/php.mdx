@@ -1,0 +1,560 @@
+---
+title: 'PHP'
+description: 'Implementação completa da API FlowPay em PHP com exemplos práticos'
+icon: 'php'
+---
+
+## Implementação PHP
+
+Guia completo para integrar a API FlowPay em suas aplicações PHP usando cURL ou Guzzle.
+
+<Card
+  title="Repositório de exemplo"
+  icon="github"
+  href="#"
+>
+  Veja o código completo no GitHub
+</Card>
+
+## Instalação
+
+```bash
+composer require guzzlehttp/guzzle
+# ou use cURL nativo do PHP
+```
+
+## Configuração Base
+
+<CodeGroup>
+
+```php Classe Base
+<?php
+// FlowPayAPI.php
+namespace FlowPay;
+
+class FlowPayAPI {
+    private const BASE_URL = 'https://flowapplications.com.br/api/v1';
+    private $apiToken;
+    private $httpClient;
+    
+    public function __construct(?string $apiToken = null) {
+        $this->apiToken = $apiToken ?? $_ENV['FLOWPAY_API_TOKEN'] ?? getenv('FLOWPAY_API_TOKEN');
+        
+        if (empty($this->apiToken)) {
+            throw new \Exception('Token de API não fornecido');
+        }
+        
+        $this->httpClient = new \GuzzleHttp\Client([
+            'base_uri' => self::BASE_URL,
+            'timeout' => 30,
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->apiToken,
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+    }
+    
+    private function makeRequest(string $method, string $endpoint, array $data = []): array {
+        try {
+            $options = [];
+            if (!empty($data)) {
+                $options['json'] = $data;
+            }
+            
+            $response = $this->httpClient->request($method, $endpoint, $options);
+            $result = json_decode($response->getBody()->getContents(), true);
+            
+            return $result;
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $response = $e->getResponse();
+            $error = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($error['error'] ?? 'Erro ao fazer requisição');
+        } catch (\Exception $e) {
+            throw new \Exception('Erro de conexão: ' . $e->getMessage());
+        }
+    }
+    
+    public function createPayment(array $data): array {
+        return $this->makeRequest('POST', '/payment/create', $data);
+    }
+    
+    public function verifyPayment(string $correlationID): array {
+        return $this->makeRequest('GET', "/payment/verify/{$correlationID}");
+    }
+}
+```
+
+```php cURL Nativo
+<?php
+// FlowPayAPICurl.php
+class FlowPayAPICurl {
+    private const BASE_URL = 'https://flowapplications.com.br/api/v1';
+    private $apiToken;
+    
+    public function __construct(?string $apiToken = null) {
+        $this->apiToken = $apiToken ?? $_ENV['FLOWPAY_API_TOKEN'] ?? getenv('FLOWPAY_API_TOKEN');
+        
+        if (empty($this->apiToken)) {
+            throw new Exception('Token de API não fornecido');
+        }
+    }
+    
+    private function makeRequest(string $method, string $endpoint, ?array $data = null): array {
+        $url = self::BASE_URL . $endpoint;
+        
+        $ch = curl_init($url);
+        
+        $headers = [
+            'Authorization: Bearer ' . $this->apiToken,
+            'Content-Type: application/json',
+        ];
+        
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        
+        if ($method === 'POST') {
+            curl_setopt($ch, CURLOPT_POST, true);
+            if ($data !== null) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            }
+        }
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        
+        if (curl_errno($ch)) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new Exception('Erro de conexão: ' . $error);
+        }
+        
+        curl_close($ch);
+        
+        $result = json_decode($response, true);
+        
+        if ($httpCode >= 400) {
+            throw new Exception($result['error'] ?? 'Erro ao fazer requisição');
+        }
+        
+        return $result;
+    }
+    
+    public function createPayment(array $data): array {
+        return $this->makeRequest('POST', '/payment/create', $data);
+    }
+    
+    public function verifyPayment(string $correlationID): array {
+        return $this->makeRequest('GET', "/payment/verify/{$correlationID}");
+    }
+}
+```
+
+</CodeGroup>
+
+## Criar Pagamento
+
+<CodeGroup>
+
+```php Função Simples
+<?php
+// criar_pagamento.php
+require_once 'FlowPayAPI.php';
+
+use FlowPay\FlowPayAPI;
+
+try {
+    $api = new FlowPayAPI();
+    
+    $data = [
+        'correlationID' => 'pedido-123',
+        'value' => 10.50,
+        'comment' => 'Pagamento do pedido #123',
+        'expiresIn' => 3600,
+    ];
+    
+    $resultado = $api->createPayment($data);
+    
+    if ($resultado['success'] && isset($resultado['charge'])) {
+        $charge = $resultado['charge'];
+        echo "✅ Pagamento criado com sucesso!\n";
+        echo "📱 Link: {$charge['paymentLinkUrl']}\n";
+        echo "🔲 QR Code: {$charge['qrCodeImage']}\n";
+        echo "📋 BR Code: {$charge['brCode']}\n";
+    } else {
+        throw new Exception($resultado['error'] ?? 'Erro desconhecido');
+    }
+} catch (Exception $e) {
+    echo "❌ Erro: " . $e->getMessage() . "\n";
+}
+```
+
+```php Laravel
+<?php
+// app/Services/FlowPayService.php
+namespace App\Services;
+
+use GuzzleHttp\Client;
+
+class FlowPayService {
+    private $client;
+    private $baseUrl = 'https://flowapplications.com.br/api/v1';
+    private $apiToken;
+    
+    public function __construct() {
+        $this->apiToken = config('services.flowpay.token');
+        $this->client = new Client([
+            'base_uri' => $this->baseUrl,
+            'timeout' => 30,
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->apiToken,
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+    }
+    
+    public function createPayment(array $data): array {
+        try {
+            $response = $this->client->post('/payment/create', [
+                'json' => $data,
+            ]);
+            
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $response = $e->getResponse();
+            $error = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($error['error'] ?? 'Erro ao criar pagamento');
+        }
+    }
+    
+    public function verifyPayment(string $correlationID): array {
+        try {
+            $response = $this->client->get("/payment/verify/{$correlationID}");
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $response = $e->getResponse();
+            $error = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($error['error'] ?? 'Erro ao verificar pagamento');
+        }
+    }
+}
+
+// app/Http/Controllers/PaymentController.php
+namespace App\Http\Controllers;
+
+use App\Services\FlowPayService;
+use Illuminate\Http\Request;
+
+class PaymentController extends Controller {
+    private $flowpay;
+    
+    public function __construct(FlowPayService $flowpay) {
+        $this->flowpay = $flowpay;
+    }
+    
+    public function create(Request $request) {
+        $request->validate([
+            'correlationID' => 'required|string',
+            'value' => 'required|numeric|min:0.01',
+        ]);
+        
+        try {
+            $resultado = $this->flowpay->createPayment($request->all());
+            
+            if ($resultado['success'] && isset($resultado['charge'])) {
+                $charge = $resultado['charge'];
+                return response()->json([
+                    'success' => true,
+                    'pagamento' => [
+                        'correlationID' => $charge['correlationID'],
+                        'qrCode' => $charge['qrCodeImage'],
+                        'brCode' => $charge['brCode'],
+                        'link' => $charge['paymentLinkUrl'],
+                    ],
+                ], 200);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'error' => $resultado['error'],
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    
+    public function verify(string $correlationID) {
+        try {
+            $resultado = $this->flowpay->verifyPayment($correlationID);
+            
+            if ($resultado['success']) {
+                return response()->json($resultado, 200);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'error' => $resultado['error'] ?? 'Pagamento não encontrado',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+}
+```
+
+```php Symfony
+<?php
+// src/Service/FlowPayService.php
+namespace App\Service;
+
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+class FlowPayService {
+    private $httpClient;
+    private $baseUrl = 'https://flowapplications.com.br/api/v1';
+    private $apiToken;
+    
+    public function __construct(HttpClientInterface $httpClient, string $apiToken) {
+        $this->httpClient = $httpClient;
+        $this->apiToken = $apiToken;
+    }
+    
+    public function createPayment(array $data): array {
+        $response = $this->httpClient->request('POST', "{$this->baseUrl}/payment/create", [
+            'headers' => [
+                'Authorization' => "Bearer {$this->apiToken}",
+                'Content-Type' => 'application/json',
+            ],
+            'json' => $data,
+        ]);
+        
+        return $response->toArray();
+    }
+    
+    public function verifyPayment(string $correlationID): array {
+        $response = $this->httpClient->request('GET', "{$this->baseUrl}/payment/verify/{$correlationID}", [
+            'headers' => [
+                'Authorization' => "Bearer {$this->apiToken}",
+            ],
+        ]);
+        
+        return $response->toArray();
+    }
+}
+```
+
+</CodeGroup>
+
+## Verificar Pagamento
+
+<CodeGroup>
+
+```php Função Simples
+<?php
+// verificar_pagamento.php
+require_once 'FlowPayAPI.php';
+
+use FlowPay\FlowPayAPI;
+
+function verificarPagamento($api, $correlationID) {
+    try {
+        $resultado = $api->verifyPayment($correlationID);
+        
+        if ($resultado['success'] && isset($resultado['charge'])) {
+            $charge = $resultado['charge'];
+            echo "📊 Status: {$charge['status']}\n";
+            echo "💰 Valor: R$ " . number_format($charge['value'], 2, ',', '.') . "\n";
+            
+            if ($charge['status'] === 'COMPLETED') {
+                echo "✅ Pagamento confirmado!\n";
+                if (isset($charge['transactionID'])) {
+                    echo "🆔 Transaction ID: {$charge['transactionID']}\n";
+                }
+            } else if ($charge['status'] === 'EXPIRED') {
+                echo "⏰ Pagamento expirado\n";
+            }
+            
+            return $charge;
+        } else {
+            throw new Exception($resultado['error'] ?? 'Pagamento não encontrado');
+        }
+    } catch (Exception $e) {
+        echo "❌ Erro: " . $e->getMessage() . "\n";
+        throw $e;
+    }
+}
+
+$api = new FlowPayAPI();
+$status = verificarPagamento($api, 'pedido-123');
+```
+
+```php Polling
+<?php
+// polling.php
+function aguardarPagamento($api, $correlationID, $intervalo = 5, $timeout = 300) {
+    $inicio = time();
+    
+    while (time() - $inicio < $timeout) {
+        try {
+            $resultado = $api->verifyPayment($correlationID);
+            
+            if ($resultado['success'] && isset($resultado['charge'])) {
+                $charge = $resultado['charge'];
+                $status = $charge['status'];
+                
+                if ($status === 'COMPLETED') {
+                    echo "✅ Pagamento confirmado!\n";
+                    return $charge;
+                } else if ($status === 'EXPIRED') {
+                    throw new Exception('Pagamento expirado');
+                }
+                
+                echo "⏳ Aguardando pagamento... Status: {$status}\n";
+            } else {
+                throw new Exception($resultado['error'] ?? 'Pagamento não encontrado');
+            }
+        } catch (Exception $e) {
+            if (strpos($e->getMessage(), 'expirado') !== false) {
+                throw $e;
+            }
+            echo "❌ Erro ao verificar: " . $e->getMessage() . "\n";
+        }
+        
+        sleep($intervalo);
+    }
+    
+    throw new Exception('Timeout ao aguardar pagamento');
+}
+
+$api = new FlowPayAPI();
+$pagamento = aguardarPagamento($api, 'pedido-123');
+```
+
+</CodeGroup>
+
+## Exemplo Completo - E-commerce
+
+```php
+<?php
+// EcommercePagamento.php
+class EcommercePagamento {
+    private $api;
+    
+    public function __construct() {
+        $this->api = new FlowPayAPI();
+    }
+    
+    public function criarPagamentoPedido(string $pedidoID, float $valor, ?array $cliente = null): array {
+        $data = [
+            'correlationID' => "pedido-{$pedidoID}",
+            'value' => $valor,
+            'comment' => "Pagamento do pedido #{$pedidoID}",
+            'expiresIn' => 3600,
+        ];
+        
+        if ($cliente) {
+            $data['customer'] = [
+                'name' => $cliente['nome'],
+                'email' => $cliente['email'],
+                'phone' => $cliente['telefone'],
+            ];
+            
+            if (isset($cliente['cpf'])) {
+                $data['customer']['taxID'] = [
+                    'taxID' => $cliente['cpf'],
+                    'type' => 'BR:CPF',
+                ];
+            }
+        }
+        
+        $resultado = $this->api->createPayment($data);
+        
+        if ($resultado['success'] && isset($resultado['charge'])) {
+            $charge = $resultado['charge'];
+            return [
+                'success' => true,
+                'pagamento' => [
+                    'correlationID' => $charge['correlationID'],
+                    'qrCode' => $charge['qrCodeImage'],
+                    'brCode' => $charge['brCode'],
+                    'link' => $charge['paymentLinkUrl'],
+                    'expiraEm' => $charge['expiresDate'] ?? null,
+                ],
+            ];
+        }
+        
+        return [
+            'success' => false,
+            'error' => $resultado['error'],
+        ];
+    }
+    
+    public function verificarPagamentoPedido(string $pedidoID): array {
+        $correlationID = "pedido-{$pedidoID}";
+        $resultado = $this->api->verifyPayment($correlationID);
+        
+        if ($resultado['success'] && isset($resultado['charge'])) {
+            $charge = $resultado['charge'];
+            return [
+                'pago' => $charge['status'] === 'COMPLETED',
+                'status' => $charge['status'],
+                'transactionID' => $charge['transactionID'] ?? null,
+            ];
+        }
+        
+        return [
+            'pago' => false,
+            'status' => 'NOT_FOUND',
+            'error' => $resultado['error'] ?? 'Pagamento não encontrado',
+        ];
+    }
+}
+
+// Uso
+$ecommerce = new EcommercePagamento();
+
+$pagamento = $ecommerce->criarPagamentoPedido(
+    '123',
+    99.90,
+    [
+        'nome' => 'João Silva',
+        'email' => 'joao@example.com',
+        'telefone' => '+5511999999999',
+        'cpf' => '12345678900',
+    ]
+);
+
+print_r($pagamento);
+
+$status = $ecommerce->verificarPagamentoPedido('123');
+print_r($status);
+```
+
+## Configuração (config/services.php - Laravel)
+
+```php
+'flowpay' => [
+    'token' => env('FLOWPAY_API_TOKEN'),
+],
+```
+
+## Variáveis de Ambiente
+
+Crie um arquivo `.env`:
+
+```bash
+FLOWPAY_API_TOKEN=seu_token_aqui
+```
+
+<Note>
+Para produção, sempre use variáveis de ambiente para armazenar o token da API. Nunca commite o token no código fonte.
+</Note>
+

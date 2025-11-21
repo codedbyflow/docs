@@ -1,0 +1,599 @@
+---
+title: 'Python'
+description: 'Implementação completa da API FlowPay em Python com exemplos práticos'
+icon: 'python'
+---
+
+## Implementação Python
+
+Guia completo para integrar a API FlowPay em suas aplicações Python usando requests ou httpx.
+
+<Card
+  title="Repositório de exemplo"
+  icon="github"
+  href="#"
+>
+  Veja o código completo no GitHub
+</Card>
+
+## Instalação
+
+Primeiro, instale as dependências necessárias:
+
+```bash
+pip install requests
+# ou
+pip install httpx
+```
+
+## Configuração Base
+
+<CodeGroup>
+
+```python Requests
+# flowpay.py
+import requests
+import os
+from typing import Optional, Dict, Any
+
+class FlowPayAPI:
+    BASE_URL = "https://flowapplications.com.br/api/v1"
+    
+    def __init__(self, api_token: Optional[str] = None):
+        self.api_token = api_token or os.getenv("FLOWPAY_API_TOKEN")
+        if not self.api_token:
+            raise ValueError("Token de API não fornecido")
+        
+        self.headers = {
+            "Authorization": f"Bearer {self.api_token}",
+            "Content-Type": "application/json"
+        }
+    
+    def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[Any, Any]:
+        """Faz uma requisição à API"""
+        url = f"{self.BASE_URL}{endpoint}"
+        
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=self.headers,
+                timeout=30,
+                **kwargs
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            error_data = e.response.json() if e.response else {}
+            raise Exception(error_data.get("error", f"Erro HTTP {e.response.status_code}"))
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Erro de conexão: {str(e)}")
+    
+    def create_payment(self, correlation_id: str, value: float, **kwargs) -> Dict[Any, Any]:
+        """Cria um novo pagamento PIX"""
+        data = {
+            "correlationID": correlation_id,
+            "value": value,
+            **kwargs
+        }
+        return self._make_request("POST", "/payment/create", json=data)
+    
+    def verify_payment(self, correlation_id: str) -> Dict[Any, Any]:
+        """Verifica o status de um pagamento"""
+        return self._make_request("GET", f"/payment/verify/{correlation_id}")
+
+# Uso
+if __name__ == "__main__":
+    api = FlowPayAPI()
+```
+
+```python AsyncIO (httpx)
+# flowpay_async.py
+import httpx
+import asyncio
+import os
+from typing import Optional, Dict, Any
+
+class FlowPayAPIAsync:
+    BASE_URL = "https://flowapplications.com.br/api/v1"
+    
+    def __init__(self, api_token: Optional[str] = None):
+        self.api_token = api_token or os.getenv("FLOWPAY_API_TOKEN")
+        if not self.api_token:
+            raise ValueError("Token de API não fornecido")
+        
+        self.headers = {
+            "Authorization": f"Bearer {self.api_token}",
+            "Content-Type": "application/json"
+        }
+        self.client = httpx.AsyncClient(
+            base_url=self.BASE_URL,
+            headers=self.headers,
+            timeout=30.0
+        )
+    
+    async def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[Any, Any]:
+        """Faz uma requisição assíncrona à API"""
+        try:
+            response = await self.client.request(method=method, url=endpoint, **kwargs)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            error_data = e.response.json() if e.response else {}
+            raise Exception(error_data.get("error", f"Erro HTTP {e.response.status_code}"))
+        except httpx.RequestError as e:
+            raise Exception(f"Erro de conexão: {str(e)}")
+    
+    async def create_payment(self, correlation_id: str, value: float, **kwargs) -> Dict[Any, Any]:
+        """Cria um novo pagamento PIX"""
+        data = {
+            "correlationID": correlation_id,
+            "value": value,
+            **kwargs
+        }
+        return await self._make_request("POST", "/payment/create", json=data)
+    
+    async def verify_payment(self, correlation_id: str) -> Dict[Any, Any]:
+        """Verifica o status de um pagamento"""
+        return await self._make_request("GET", f"/payment/verify/{correlation_id}")
+    
+    async def close(self):
+        """Fecha o cliente HTTP"""
+        await self.client.aclose()
+
+# Uso
+async def main():
+    api = FlowPayAPIAsync()
+    try:
+        resultado = await api.create_payment("pedido-123", 10.50)
+        print(resultado)
+    finally:
+        await api.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+</CodeGroup>
+
+## Criar Pagamento
+
+<CodeGroup>
+
+```python Função Simples
+# criar_pagamento.py
+from flowpay import FlowPayAPI
+
+def criar_pagamento(correlation_id: str, valor: float, comentario: str = None):
+    """Cria um pagamento PIX"""
+    api = FlowPayAPI()
+    
+    try:
+        data = {
+            "correlationID": correlation_id,
+            "value": valor
+        }
+        
+        if comentario:
+            data["comment"] = comentario
+        
+        resultado = api.create_payment(**data)
+        
+        if resultado.get("success") and resultado.get("charge"):
+            charge = resultado["charge"]
+            print(f"✅ Pagamento criado com sucesso!")
+            print(f"📱 Link: {charge['paymentLinkUrl']}")
+            print(f"🔲 QR Code: {charge['qrCodeImage']}")
+            print(f"📋 BR Code: {charge['brCode']}")
+            return charge
+        else:
+            raise Exception(resultado.get("error", "Erro desconhecido"))
+    
+    except Exception as e:
+        print(f"❌ Erro ao criar pagamento: {str(e)}")
+        raise
+
+# Exemplo de uso
+if __name__ == "__main__":
+    pagamento = criar_pagamento(
+        "pedido-123",
+        10.50,
+        "Pagamento do pedido #123"
+    )
+    print(pagamento)
+```
+
+```python Flask
+# app.py
+from flask import Flask, request, jsonify
+from flowpay import FlowPayAPI
+import os
+
+app = Flask(__name__)
+api = FlowPayAPI(os.getenv("FLOWPAY_API_TOKEN"))
+
+@app.route("/pagamentos/criar", methods=["POST"])
+def criar_pagamento():
+    try:
+        data = request.get_json()
+        
+        # Validação
+        if not data.get("correlationID") or not data.get("value"):
+            return jsonify({
+                "success": False,
+                "error": "correlationID e value são obrigatórios"
+            }), 400
+        
+        resultado = api.create_payment(
+            correlation_id=data["correlationID"],
+            value=data["value"],
+            comment=data.get("comment"),
+            expiresIn=data.get("expiresIn"),
+            customer=data.get("customer")
+        )
+        
+        if resultado.get("success") and resultado.get("charge"):
+            charge = resultado["charge"]
+            return jsonify({
+                "success": True,
+                "pagamento": {
+                    "correlationID": charge["correlationID"],
+                    "qrCode": charge["qrCodeImage"],
+                    "brCode": charge["brCode"],
+                    "link": charge["paymentLinkUrl"],
+                    "expiraEm": charge.get("expiresDate")
+                }
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "error": resultado.get("error")
+            }), 400
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route("/pagamentos/verificar/<correlation_id>", methods=["GET"])
+def verificar_pagamento(correlation_id):
+    try:
+        resultado = api.verify_payment(correlation_id)
+        
+        if resultado.get("success") and resultado.get("charge"):
+            return jsonify(resultado), 200
+        else:
+            return jsonify({
+                "success": False,
+                "error": resultado.get("error", "Pagamento não encontrado")
+            }), 404
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
+```
+
+```python Django
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
+from flowpay import FlowPayAPI
+import os
+
+api = FlowPayAPI(os.getenv("FLOWPAY_API_TOKEN"))
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def criar_pagamento(request):
+    try:
+        data = json.loads(request.body)
+        
+        if not data.get("correlationID") or not data.get("value"):
+            return JsonResponse({
+                "success": False,
+                "error": "correlationID e value são obrigatórios"
+            }, status=400)
+        
+        resultado = api.create_payment(
+            correlation_id=data["correlationID"],
+            value=data["value"],
+            comment=data.get("comment"),
+            expiresIn=data.get("expiresIn"),
+            customer=data.get("customer")
+        )
+        
+        if resultado.get("success") and resultado.get("charge"):
+            charge = resultado["charge"]
+            return JsonResponse({
+                "success": True,
+                "pagamento": {
+                    "correlationID": charge["correlationID"],
+                    "qrCode": charge["qrCodeImage"],
+                    "brCode": charge["brCode"],
+                    "link": charge["paymentLinkUrl"]
+                }
+            }, status=200)
+        else:
+            return JsonResponse({
+                "success": False,
+                "error": resultado.get("error")
+            }, status=400)
+    
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+@require_http_methods(["GET"])
+def verificar_pagamento(request, correlation_id):
+    try:
+        resultado = api.verify_payment(correlation_id)
+        
+        if resultado.get("success"):
+            return JsonResponse(resultado, status=200)
+        else:
+            return JsonResponse({
+                "success": False,
+                "error": resultado.get("error", "Pagamento não encontrado")
+            }, status=404)
+    
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+```
+
+</CodeGroup>
+
+## Verificar Pagamento
+
+<CodeGroup>
+
+```python Função Simples
+# verificar_pagamento.py
+from flowpay import FlowPayAPI
+
+def verificar_pagamento(correlation_id: str):
+    """Verifica o status de um pagamento"""
+    api = FlowPayAPI()
+    
+    try:
+        resultado = api.verify_payment(correlation_id)
+        
+        if resultado.get("success") and resultado.get("charge"):
+            charge = resultado["charge"]
+            print(f"📊 Status: {charge['status']}")
+            print(f"💰 Valor: R$ {charge['value']:.2f}")
+            
+            if charge["status"] == "COMPLETED":
+                print("✅ Pagamento confirmado!")
+                print(f"🆔 Transaction ID: {charge['transactionID']}")
+            elif charge["status"] == "EXPIRED":
+                print("⏰ Pagamento expirado")
+            
+            return charge
+        else:
+            raise Exception(resultado.get("error", "Pagamento não encontrado"))
+    
+    except Exception as e:
+        print(f"❌ Erro: {str(e)}")
+        raise
+
+# Exemplo de uso
+if __name__ == "__main__":
+    status = verificar_pagamento("pedido-123")
+    print(status)
+```
+
+```python Polling
+# polling.py
+import time
+from flowpay import FlowPayAPI
+
+def aguardar_pagamento(correlation_id: str, intervalo: int = 5, timeout: int = 300):
+    """Aguarda o pagamento ser confirmado"""
+    api = FlowPayAPI()
+    inicio = time.time()
+    
+    while time.time() - inicio < timeout:
+        try:
+            resultado = api.verify_payment(correlation_id)
+            
+            if resultado.get("success") and resultado.get("charge"):
+                charge = resultado["charge"]
+                status = charge["status"]
+                
+                if status == "COMPLETED":
+                    print("✅ Pagamento confirmado!")
+                    return charge
+                elif status == "EXPIRED":
+                    raise Exception("Pagamento expirado")
+                
+                print(f"⏳ Aguardando pagamento... Status: {status}")
+            else:
+                raise Exception(resultado.get("error", "Pagamento não encontrado"))
+        
+        except Exception as e:
+            if "expirado" in str(e).lower():
+                raise
+            print(f"❌ Erro ao verificar: {str(e)}")
+        
+        time.sleep(intervalo)
+    
+    raise Exception("Timeout ao aguardar pagamento")
+
+# Exemplo de uso
+if __name__ == "__main__":
+    try:
+        pagamento = aguardar_pagamento("pedido-123")
+        print("Pagamento:", pagamento)
+    except Exception as e:
+        print(f"Erro: {str(e)}")
+```
+
+</CodeGroup>
+
+## Exemplo Completo - E-commerce
+
+```python
+# ecommerce.py
+from flowpay import FlowPayAPI
+from typing import Optional, Dict, Any
+import os
+
+class EcommercePagamento:
+    def __init__(self):
+        self.api = FlowPayAPI(os.getenv("FLOWPAY_API_TOKEN"))
+    
+    def criar_pagamento_pedido(self, pedido_id: str, valor: float, cliente: Optional[Dict] = None):
+        """Cria pagamento PIX para um pedido"""
+        correlation_id = f"pedido-{pedido_id}"
+        
+        data = {
+            "correlationID": correlation_id,
+            "value": valor,
+            "comment": f"Pagamento do pedido #{pedido_id}",
+            "expiresIn": 3600  # 1 hora
+        }
+        
+        if cliente:
+            data["customer"] = {
+                "name": cliente.get("nome"),
+                "email": cliente.get("email"),
+                "phone": cliente.get("telefone"),
+            }
+            
+            if cliente.get("cpf"):
+                data["customer"]["taxID"] = {
+                    "taxID": cliente["cpf"],
+                    "type": "BR:CPF"
+                }
+        
+        resultado = self.api.create_payment(**data)
+        
+        if resultado.get("success") and resultado.get("charge"):
+            return {
+                "success": True,
+                "pagamento": {
+                    "correlationID": resultado["charge"]["correlationID"],
+                    "qrCode": resultado["charge"]["qrCodeImage"],
+                    "brCode": resultado["charge"]["brCode"],
+                    "link": resultado["charge"]["paymentLinkUrl"],
+                    "expiraEm": resultado["charge"].get("expiresDate")
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "error": resultado.get("error")
+            }
+    
+    def verificar_pagamento_pedido(self, pedido_id: str):
+        """Verifica se o pedido foi pago"""
+        correlation_id = f"pedido-{pedido_id}"
+        resultado = self.api.verify_payment(correlation_id)
+        
+        if resultado.get("success") and resultado.get("charge"):
+            charge = resultado["charge"]
+            return {
+                "pago": charge["status"] == "COMPLETED",
+                "status": charge["status"],
+                "transactionID": charge.get("transactionID")
+            }
+        else:
+            return {
+                "pago": False,
+                "status": "NOT_FOUND",
+                "error": resultado.get("error")
+            }
+
+# Uso
+if __name__ == "__main__":
+    ecommerce = EcommercePagamento()
+    
+    # Criar pagamento
+    pagamento = ecommerce.criar_pagamento_pedido(
+        pedido_id="123",
+        valor=99.90,
+        cliente={
+            "nome": "João Silva",
+            "email": "joao@example.com",
+            "telefone": "+5511999999999",
+            "cpf": "12345678900"
+        }
+    )
+    
+    print(pagamento)
+    
+    # Verificar pagamento
+    status = ecommerce.verificar_pagamento_pedido("123")
+    print(status)
+```
+
+## Tratamento de Erros
+
+```python
+# error_handling.py
+from flowpay import FlowPayAPI
+from typing import Dict, Any
+
+class FlowPayError(Exception):
+    """Exceção customizada para erros da API FlowPay"""
+    pass
+
+def criar_pagamento_seguro(correlation_id: str, valor: float, **kwargs) -> Dict[Any, Any]:
+    """Cria pagamento com tratamento de erros robusto"""
+    api = FlowPayAPI()
+    
+    try:
+        resultado = api.create_payment(
+            correlation_id=correlation_id,
+            value=valor,
+            **kwargs
+        )
+        
+        if not resultado.get("success"):
+            error = resultado.get("error", "Erro desconhecido")
+            raise FlowPayError(error)
+        
+        return resultado
+    
+    except FlowPayError:
+        raise
+    except Exception as e:
+        raise FlowPayError(f"Erro ao criar pagamento: {str(e)}")
+```
+
+## Variáveis de Ambiente
+
+Crie um arquivo `.env`:
+
+```bash
+FLOWPAY_API_TOKEN=seu_token_aqui
+```
+
+E use com `python-dotenv`:
+
+```python
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+API_TOKEN = os.getenv("FLOWPAY_API_TOKEN")
+```
+
+<Note>
+Para produção, sempre use variáveis de ambiente para armazenar o token da API. Nunca commite o token no código fonte.
+</Note>
+

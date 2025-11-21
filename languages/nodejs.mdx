@@ -1,0 +1,586 @@
+---
+title: 'Node.js'
+description: 'Implementação completa da API FlowPay em Node.js com exemplos práticos'
+icon: 'nodejs'
+---
+
+## Implementação Node.js
+
+Guia completo para integrar a API FlowPay em suas aplicações Node.js usando axios ou fetch nativo.
+
+<Card
+  title="Repositório de exemplo"
+  icon="github"
+  href="#"
+>
+  Veja o código completo no GitHub
+</Card>
+
+## Instalação
+
+Primeiro, instale as dependências necessárias:
+
+```bash
+npm install axios
+# ou
+yarn add axios
+```
+
+## Configuração Base
+
+<CodeGroup>
+
+```javascript Node.js com Axios
+// flowpay.js
+const axios = require('axios');
+
+const BASE_URL = 'https://flowapplications.com.br/api/v1';
+const API_TOKEN = process.env.FLOWPAY_API_TOKEN || 'seu_token_aqui';
+
+// Criar instância do axios com configurações padrão
+const flowpay = axios.create({
+  baseURL: BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Authorization': `Bearer ${API_TOKEN}`,
+    'Content-Type': 'application/json'
+  }
+});
+
+// Interceptor para tratamento de erros
+flowpay.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response) {
+      console.error('Erro da API:', error.response.data);
+    } else if (error.request) {
+      console.error('Erro de conexão:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
+module.exports = flowpay;
+```
+
+```javascript TypeScript
+// flowpay.ts
+import axios, { AxiosInstance, AxiosError } from 'axios';
+
+const BASE_URL = 'https://flowapplications.com.br/api/v1';
+const API_TOKEN = process.env.FLOWPAY_API_TOKEN || 'seu_token_aqui';
+
+interface CreatePaymentRequest {
+  correlationID: string;
+  value: number;
+  comment?: string;
+  expiresIn?: number;
+  expiresDate?: string;
+  customer?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    taxID?: {
+      taxID: string;
+      type: 'BR:CPF' | 'BR:CNPJ';
+    };
+  };
+}
+
+interface PaymentCharge {
+  correlationID: string;
+  value: number;
+  status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED';
+  paymentLinkUrl: string;
+  qrCodeImage: string;
+  brCode: string;
+  globalID: string;
+  transactionID: string | null;
+  expiresIn?: number;
+  expiresDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PaymentResponse {
+  success: boolean;
+  charge?: PaymentCharge;
+  error?: string;
+}
+
+class FlowPayAPI {
+  private client: AxiosInstance;
+
+  constructor(token: string = API_TOKEN) {
+    this.client = axios.create({
+      baseURL: BASE_URL,
+      timeout: 30000,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    this.client.interceptors.response.use(
+      response => response,
+      (error: AxiosError) => {
+        if (error.response) {
+          console.error('Erro da API:', error.response.data);
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  async createPayment(data: CreatePaymentRequest): Promise<PaymentResponse> {
+    try {
+      const response = await this.client.post<PaymentResponse>('/payment/create', data);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Erro ao criar pagamento');
+    }
+  }
+
+  async verifyPayment(correlationID: string): Promise<PaymentResponse> {
+    try {
+      const response = await this.client.get<PaymentResponse>(`/payment/verify/${correlationID}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Erro ao verificar pagamento');
+    }
+  }
+}
+
+export default FlowPayAPI;
+```
+
+</CodeGroup>
+
+## Criar Pagamento
+
+<CodeGroup>
+
+```javascript JavaScript Puro
+// criarPagamento.js
+const flowpay = require('./flowpay');
+
+async function criarPagamento(correlationID, valor, comentario = null) {
+  const data = {
+    correlationID,
+    value: valor
+  };
+
+  if (comentario) {
+    data.comment = comentario;
+  }
+
+  try {
+    const response = await flowpay.post('/payment/create', data);
+    const { success, charge, error } = response.data;
+
+    if (success && charge) {
+      console.log('✅ Pagamento criado com sucesso!');
+      console.log('📱 Link de pagamento:', charge.paymentLinkUrl);
+      console.log('🔲 QR Code:', charge.qrCodeImage);
+      console.log('📋 BR Code:', charge.brCode);
+      return charge;
+    } else {
+      throw new Error(error || 'Erro desconhecido');
+    }
+  } catch (error) {
+    console.error('❌ Erro ao criar pagamento:', error.message);
+    throw error;
+  }
+}
+
+// Exemplo de uso
+(async () => {
+  try {
+    const pagamento = await criarPagamento(
+      'pedido-123',
+      10.50,
+      'Pagamento do pedido #123'
+    );
+    console.log('Pagamento:', pagamento);
+  } catch (error) {
+    console.error('Erro:', error);
+  }
+})();
+```
+
+```javascript Express.js
+// routes/payment.js
+const express = require('express');
+const router = express.Router();
+const flowpay = require('../flowpay');
+
+// Criar pagamento
+router.post('/create', async (req, res) => {
+  try {
+    const { correlationID, value, comment, expiresIn, customer } = req.body;
+
+    // Validação
+    if (!correlationID || !value) {
+      return res.status(400).json({
+        success: false,
+        error: 'correlationID e value são obrigatórios'
+      });
+    }
+
+    const data = {
+      correlationID,
+      value,
+      ...(comment && { comment }),
+      ...(expiresIn && { expiresIn }),
+      ...(customer && { customer })
+    };
+
+    const response = await flowpay.post('/payment/create', data);
+    const { success, charge, error } = response.data;
+
+    if (success && charge) {
+      res.status(200).json({
+        success: true,
+        charge: {
+          correlationID: charge.correlationID,
+          value: charge.value,
+          status: charge.status,
+          paymentLinkUrl: charge.paymentLinkUrl,
+          qrCodeImage: charge.qrCodeImage,
+          brCode: charge.brCode
+        }
+      });
+    } else {
+      res.status(400).json({ success: false, error });
+    }
+  } catch (error) {
+    console.error('Erro ao criar pagamento:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+module.exports = router;
+```
+
+```javascript NestJS
+// payment.service.ts
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+
+@Injectable()
+export class PaymentService {
+  private readonly baseURL = 'https://flowapplications.com.br/api/v1';
+  private readonly apiToken = process.env.FLOWPAY_API_TOKEN;
+
+  constructor(private httpService: HttpService) {}
+
+  async createPayment(data: {
+    correlationID: string;
+    value: number;
+    comment?: string;
+    expiresIn?: number;
+    customer?: any;
+  }) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.baseURL}/payment/create`,
+          data,
+          {
+            headers: {
+              Authorization: `Bearer ${this.apiToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+      );
+
+      return response.data;
+    } catch (error) {
+      throw new HttpException(
+        error.response?.data?.error || 'Erro ao criar pagamento',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async verifyPayment(correlationID: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${this.baseURL}/payment/verify/${correlationID}`,
+          {
+            headers: {
+              Authorization: `Bearer ${this.apiToken}`
+            }
+          }
+        )
+      );
+
+      return response.data;
+    } catch (error) {
+      throw new HttpException(
+        error.response?.data?.error || 'Erro ao verificar pagamento',
+        error.response?.status || HttpStatus.NOT_FOUND
+      );
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+## Verificar Pagamento
+
+<CodeGroup>
+
+```javascript Função Simples
+// verificarPagamento.js
+const flowpay = require('./flowpay');
+
+async function verificarPagamento(correlationID) {
+  try {
+    const response = await flowpay.get(`/payment/verify/${correlationID}`);
+    const { success, charge, error } = response.data;
+
+    if (success && charge) {
+      console.log(`📊 Status do pagamento: ${charge.status}`);
+      console.log(`💰 Valor: R$ ${charge.value.toFixed(2)}`);
+      
+      if (charge.status === 'COMPLETED') {
+        console.log('✅ Pagamento confirmado!');
+        console.log(`🆔 Transaction ID: ${charge.transactionID}`);
+      } else if (charge.status === 'EXPIRED') {
+        console.log('⏰ Pagamento expirado');
+      }
+      
+      return charge;
+    } else {
+      throw new Error(error || 'Pagamento não encontrado');
+    }
+  } catch (error) {
+    console.error('❌ Erro ao verificar pagamento:', error.message);
+    throw error;
+  }
+}
+
+// Exemplo de uso
+(async () => {
+  try {
+    const status = await verificarPagamento('pedido-123');
+    console.log('Status:', status);
+  } catch (error) {
+    console.error('Erro:', error);
+  }
+})();
+```
+
+```javascript Polling (Verificação Periódica)
+// verificarPeriodicamente.js
+const flowpay = require('./flowpay');
+
+async function verificarPagamento(correlationID) {
+  try {
+    const response = await flowpay.get(`/payment/verify/${correlationID}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function aguardarPagamento(correlationID, intervalo = 5000, timeout = 300000) {
+  const inicio = Date.now();
+
+  return new Promise((resolve, reject) => {
+    const interval = setInterval(async () => {
+      try {
+        const resultado = await verificarPagamento(correlationID);
+        
+        if (resultado.success && resultado.charge) {
+          const { status } = resultado.charge;
+
+          if (status === 'COMPLETED') {
+            clearInterval(interval);
+            resolve(resultado.charge);
+          } else if (status === 'EXPIRED') {
+            clearInterval(interval);
+            reject(new Error('Pagamento expirado'));
+          }
+        }
+
+        // Verifica timeout
+        if (Date.now() - inicio > timeout) {
+          clearInterval(interval);
+          reject(new Error('Timeout ao aguardar pagamento'));
+        }
+      } catch (error) {
+        clearInterval(interval);
+        reject(error);
+      }
+    }, intervalo);
+  });
+}
+
+// Exemplo de uso
+(async () => {
+  try {
+    console.log('⏳ Aguardando pagamento...');
+    const pagamento = await aguardarPagamento('pedido-123');
+    console.log('✅ Pagamento confirmado!', pagamento);
+  } catch (error) {
+    console.error('❌ Erro:', error.message);
+  }
+})();
+```
+
+</CodeGroup>
+
+## Exemplo Completo - E-commerce
+
+```javascript
+// ecommerce-example.js
+const express = require('express');
+const app = express();
+const flowpay = require('./flowpay');
+
+app.use(express.json());
+
+// Criar pagamento para um pedido
+app.post('/pedidos/:id/pagamento', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { valor, cliente } = req.body;
+
+    // Criar pagamento PIX
+    const response = await flowpay.post('/payment/create', {
+      correlationID: `pedido-${id}`,
+      value: valor,
+      comment: `Pagamento do pedido #${id}`,
+      expiresIn: 3600, // 1 hora
+      customer: cliente ? {
+        name: cliente.nome,
+        email: cliente.email,
+        phone: cliente.telefone,
+        taxID: cliente.cpf ? {
+          taxID: cliente.cpf,
+          type: 'BR:CPF'
+        } : undefined
+      } : undefined
+    });
+
+    if (response.data.success) {
+      res.json({
+        success: true,
+        pagamento: {
+          correlationID: response.data.charge.correlationID,
+          qrCode: response.data.charge.qrCodeImage,
+          brCode: response.data.charge.brCode,
+          link: response.data.charge.paymentLinkUrl,
+          expiraEm: response.data.charge.expiresDate
+        }
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Webhook para verificar status
+app.post('/webhook/pagamento', async (req, res) => {
+  try {
+    const { correlationID } = req.body;
+    
+    const response = await flowpay.get(`/payment/verify/${correlationID}`);
+    
+    if (response.data.success && response.data.charge.status === 'COMPLETED') {
+      // Atualizar pedido como pago no banco de dados
+      console.log(`✅ Pedido ${correlationID} pago!`);
+      // await atualizarPedido(correlationID, 'pago');
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro no webhook:', error);
+    res.status(500).json({ success: false });
+  }
+});
+
+app.listen(3000, () => {
+  console.log('🚀 Servidor rodando na porta 3000');
+});
+```
+
+## Tratamento de Erros
+
+```javascript
+// error-handler.js
+class FlowPayError extends Error {
+  constructor(message, statusCode, response) {
+    super(message);
+    this.name = 'FlowPayError';
+    this.statusCode = statusCode;
+    this.response = response;
+  }
+}
+
+async function criarPagamentoSeguro(data) {
+  try {
+    const response = await flowpay.post('/payment/create', data);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      // Erro da API
+      const { status, data } = error.response;
+      throw new FlowPayError(
+        data.error || 'Erro ao criar pagamento',
+        status,
+        data
+      );
+    } else if (error.request) {
+      // Erro de rede
+      throw new FlowPayError(
+        'Erro de conexão com a API',
+        0,
+        null
+      );
+    } else {
+      // Outro erro
+      throw new FlowPayError(
+        error.message || 'Erro desconhecido',
+        0,
+        null
+      );
+    }
+  }
+}
+```
+
+## Variáveis de Ambiente
+
+Crie um arquivo `.env`:
+
+```bash
+FLOWPAY_API_TOKEN=seu_token_aqui
+FLOWPAY_BASE_URL=https://flowapplications.com.br/api/v1
+```
+
+E use com `dotenv`:
+
+```javascript
+require('dotenv').config();
+
+const API_TOKEN = process.env.FLOWPAY_API_TOKEN;
+const BASE_URL = process.env.FLOWPAY_BASE_URL;
+```
+
+<Note>
+Para produção, sempre use variáveis de ambiente para armazenar o token da API. Nunca commite o token no código fonte.
+</Note>
+

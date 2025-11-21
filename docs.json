@@ -26,6 +26,17 @@
               "api-reference/endpoint/create-payment",
               "api-reference/endpoint/verify-payment"
             ]
+          },
+          {
+            "group": "Languages",
+            "pages": [
+              "languages/nodejs",
+              "languages/python",
+              "languages/go",
+              "languages/php",
+              "languages/java",
+              "languages/html-javascript"
+            ]
           }
         ]
       }
