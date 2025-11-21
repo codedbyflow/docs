@@ -1,6 +1,6 @@
 ---
-title: 'Criar Pagamento PIX'
-description: 'Cria um novo pagamento PIX dinâmico usando a Woovi'
+title: "Criar Pagamento PIX"
+description: "Cria um novo pagamento PIX dinâmico usando a Woovi"
 icon: "credit-card"
 ---
 
@@ -18,10 +18,10 @@ Cria um novo pagamento PIX dinâmico usando a Woovi.
 
 ## Headers
 
-| Header | Tipo | Obrigatório | Descrição |
-|--------|------|-------------|-----------|
-| `Authorization` | string | Sim | Bearer token de autenticação |
-| `Content-Type` | string | Sim | application/json |
+| Header          | Tipo   | Obrigatório | Descrição                    |
+| --------------- | ------ | ----------- | ---------------------------- |
+| `Authorization` | string | Sim         | Bearer token de autenticação |
+| `Content-Type`  | string | Sim         | application/json             |
 
 ## Body Parameters
 
@@ -143,7 +143,7 @@ curl -X POST https://www.flowapplications.com.br/api/v1/payment/create \
 - **updatedAt**: Data e hora da última atualização
 
 <Note>
-O campo `paymentLinkUrl` foi removido da resposta da API. Use o `qrCodeImage` ou o `brCode` para realizar o pagamento.
+  O campo `paymentLinkUrl` foi removido da resposta da API. Use o `qrCodeImage` ou o `brCode` para realizar o pagamento.
 </Note>
 
 ## Erros

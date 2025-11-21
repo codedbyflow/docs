@@ -1,24 +1,20 @@
 ---
-title: 'Go'
-description: 'Implementação completa da API FlowPay em Go (Golang) com exemplos práticos'
-icon: 'terminal'
+title: "Go"
+description: "Implementação completa da API FlowPay em Go (Golang) com exemplos práticos"
+icon: "terminal"
 ---
 
 ## Implementação Go
 
 Guia completo para integrar a API FlowPay em suas aplicações Go usando net/http ou bibliotecas HTTP modernas.
 
-<Card
-  title="Repositório de exemplo"
-  icon="github"
-  href="#"
->
+<Card title="Repositório de exemplo" icon="github" href="#">
   Veja o código completo no GitHub
 </Card>
 
 ## Instalação
 
-```bash
+```bash filename
 go mod init flowpay
 go get github.com/go-resty/resty/v2
 # ou use net/http padrão
@@ -142,6 +138,7 @@ func (c *Client) makeRequest(method, endpoint string, body interface{}) (*Paymen
     return &paymentResp, nil
 }
 ```
+
 
 ```go Com Resty
 // flowpay_resty.go
@@ -319,6 +316,7 @@ func main() {
 }
 ```
 
+
 ```go Gin Framework
 // main.go
 package main
@@ -407,6 +405,7 @@ func verificarPagamento(client *flowpay.Client, correlationID string) {
     }
 }
 ```
+
 
 ```go Polling
 // polling.go
@@ -585,6 +584,5 @@ func init() {
 ```
 
 <Note>
-Para produção, sempre use variáveis de ambiente para armazenar o token da API. Nunca commite o token no código fonte.
+  Para produção, sempre use variáveis de ambiente para armazenar o token da API. Nunca commite o token no código fonte.
 </Note>
-

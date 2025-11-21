@@ -2,34 +2,11 @@
 
 ### Criar Pagamento - Resposta (200 OK)
 
-<ResponseExample>
-
-```json
-{
-  "success": true,
-  "charge": {
-    "correlationID": "pedido-123",
-    "value": 10.50,
-    "status": "ACTIVE",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionID": null,
-    "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:00:00Z"
-  }
-}
-```
-
-</ResponseExample>
-
 ### Verificar Pagamento - Resposta (200 OK)
 
 <ResponseExample>
 
-```json
+```javascript
 {
   "success": true,
   "charge": {
@@ -54,7 +31,7 @@
 
 <ResponseExample>
 
-```json
+```javascript
 {
   "success": false,
   "error": "Mensagem de erro descritiva"
@@ -62,4 +39,3 @@
 ```
 
 </ResponseExample>
-
