@@ -47,7 +47,13 @@
     "dark": "https://i.imgur.com/rm9b54K.gif"
   },
   "navbar": {
-    "links": []
+    "links": [
+      {
+        "label": "Discord",
+        "href": "https://discord.gg/flowapp",
+        "icon": "discord"
+      }
+    ]
   },
   "contextual": {
     "options": [
@@ -62,6 +68,8 @@
    ]
   },
   "footer": {
-    "socials": {}
+    "socials": {
+      "discord": "https://discord.gg/flowapp"
+    }
   }
 }
