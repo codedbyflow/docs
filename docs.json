@@ -24,7 +24,8 @@
             "group": "Endpoints",
             "pages": [
               "api-reference/endpoint/create-payment",
-              "api-reference/endpoint/verify-payment"
+              "api-reference/endpoint/verify-payment",
+              "api-reference/endpoint/qrcode"
             ]
           },
           {

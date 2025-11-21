@@ -1,6 +1,6 @@
 ---
-title: 'Verificar Pagamento'
-description: 'Verifica o status atual de uma cobrança PIX usando o correlationID'
+title: 'Verificar Status do Pagamento'
+description: 'Verifica o status atual de um pagamento pelo correlationID'
 icon: "check-circle"
 ---
 
@@ -14,7 +14,7 @@ GET /payment/verify/{correlationID}
 
 </CodeGroup>
 
-Verifica o status atual de uma cobrança PIX usando o correlationID fornecido na criação do pagamento.
+Verifica o status atual de um pagamento pelo `correlationID`.
 
 ## Headers
 
@@ -25,7 +25,7 @@ Verifica o status atual de uma cobrança PIX usando o correlationID fornecido na
 ## Path Parameters
 
 <ParamField path="correlationID" type="string" required>
-  O ID de correlação usado na criação do pagamento
+  ID único do pagamento usado na criação
 </ParamField>
 
 ## Request Example
@@ -33,7 +33,7 @@ Verifica o status atual de uma cobrança PIX usando o correlationID fornecido na
 <RequestExample>
 
 ```bash
-GET /payment/verify/pedido-123
+GET /payment/verify/test-1234567890
 Authorization: Bearer seu_token_aqui
 ```
 
@@ -49,52 +49,138 @@ Authorization: Bearer seu_token_aqui
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "correlationID": "test-1234567890",
     "value": 10.50,
     "status": "COMPLETED",
-    "paymentLinkUrl": "https://openpix.com.br/pay/...",
-    "qrCodeImage": "https://api.openpix.com.br/api/qrcode/base64/...",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionID": "660e8400-e29b-41d4-a716-446655440001",
+    "qrCodeImage": "https://flowapplications.com.br/api/v1/payment/qrcode/test-1234567890",
+    "brCode": "00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-426614174000520400005303986540510.505802BR5925NOME DO BENEFICIARIO6009SAO PAULO62070503***6304ABCD",
+    "globalID": "630d7415-95bf-4809-b707-3755ea031677",
+    "transactionID": "E1234567820240101120000",
     "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:05:00Z"
+    "expiresDate": "2024-12-31T23:59:59.000Z",
+    "createdAt": "2024-01-01T12:00:00.000Z",
+    "updatedAt": "2024-01-01T12:05:30.000Z"
   }
 }
 ```
 
 </ResponseExample>
 
-### Erro - Pagamento Não Encontrado (404)
+## Status do Pagamento
+
+O campo `status` pode ter os seguintes valores:
+
+- **ACTIVE**: Pagamento pendente, aguardando pagamento
+- **COMPLETED**: Pagamento confirmado e concluído
+- **EXPIRED**: Pagamento expirado, não pode mais ser pago
+
+## Campos da Resposta
+
+- **correlationID**: ID único do pagamento
+- **value**: Valor do pagamento em reais
+- **status**: Status atual do pagamento
+- **qrCodeImage**: URL da imagem PNG do QR code
+- **brCode**: Código PIX copia e cola (EMV)
+- **globalID**: ID global da cobrança na Woovi
+- **transactionID**: ID da transação (preenchido quando o pagamento for confirmado)
+- **expiresIn**: Tempo de expiração em segundos
+- **expiresDate**: Data e hora de expiração
+- **createdAt**: Data e hora de criação
+- **updatedAt**: Data e hora da última atualização
+
+## Erros
+
+### 400 Bad Request
+
+`correlationID` não fornecido.
 
 <ResponseExample>
 
 ```json
 {
   "success": false,
-  "error": "Pagamento não encontrado ou não pertence a este usuário."
+  "error": "correlationID é obrigatório"
 }
 ```
 
 </ResponseExample>
 
-<Note>
-O campo `status` pode ter os seguintes valores:
-- **ACTIVE**: Pagamento criado e aguardando pagamento
-- **COMPLETED**: Pagamento confirmado e concluído
-- **EXPIRED**: Pagamento expirado (não foi pago dentro do prazo)
-</Note>
+### 401 Unauthorized
+
+Token inválido ou não fornecido.
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "Token de API inválido ou não fornecido"
+}
+```
+
+</ResponseExample>
+
+### 404 Not Found
+
+Pagamento não encontrado ou não pertence ao usuário autenticado.
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "Pagamento não encontrado"
+}
+```
+
+</ResponseExample>
+
+### 500 Internal Server Error
+
+Erro interno do servidor ou configuração da Woovi não encontrada.
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "Erro interno do servidor"
+}
+```
+
+</ResponseExample>
 
 ## Exemplos de Código
 
-### cURL
+### JavaScript/Node.js
 
-```bash
-curl -X GET \
-  https://flowapplications.com.br/api/v1/payment/verify/pedido-123 \
-  -H "Authorization: Bearer seu_token_aqui"
+```javascript
+const API_TOKEN = 'seu_token_aqui';
+const API_BASE_URL = 'https://flowapplications.com.br/api/v1';
+
+async function verificarPagamento(correlationID) {
+  const response = await fetch(`${API_BASE_URL}/payment/verify/${correlationID}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${API_TOKEN}`,
+    },
+  });
+  
+  const data = await response.json();
+  
+  if (data.success) {
+    console.log('Status:', data.charge.status);
+    console.log('Valor:', data.charge.value);
+    if (data.charge.status === 'COMPLETED') {
+      console.log('Transaction ID:', data.charge.transactionID);
+    }
+  } else {
+    console.error('Erro:', data.error);
+  }
+}
+
+// Exemplo de uso
+verificarPagamento('test-1234567890');
 ```
 
 ### Python
@@ -102,168 +188,72 @@ curl -X GET \
 ```python
 import requests
 
-BASE_URL = "https://flowapplications.com.br/api/v1"
-API_TOKEN = "seu_token_aqui"
-
-headers = {
-    "Authorization": f"Bearer {API_TOKEN}"
-}
+API_TOKEN = 'seu_token_aqui'
+API_BASE_URL = 'https://flowapplications.com.br/api/v1'
 
 def verificar_pagamento(correlation_id):
-    url = f"{BASE_URL}/payment/verify/{correlation_id}"
-    response = requests.get(url, headers=headers)
-    return response.json()
+    headers = {
+        'Authorization': f'Bearer {API_TOKEN}',
+    }
+    
+    response = requests.get(
+        f'{API_BASE_URL}/payment/verify/{correlation_id}',
+        headers=headers
+    )
+    
+    data = response.json()
+    
+    if data.get('success'):
+        print('Status:', data['charge']['status'])
+        print('Valor:', data['charge']['value'])
+        if data['charge']['status'] == 'COMPLETED':
+            print('Transaction ID:', data['charge']['transactionID'])
+    else:
+        print('Erro:', data.get('error'))
 
 # Exemplo de uso
-status = verificar_pagamento("pedido-123")
-print(status)
+verificar_pagamento('test-1234567890')
 ```
 
-### Node.js
+### cURL
 
-```javascript
-const axios = require('axios');
-
-const BASE_URL = 'https://flowapplications.com.br/api/v1';
-const API_TOKEN = 'seu_token_aqui';
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Authorization': `Bearer ${API_TOKEN}`
-  }
-});
-
-async function verificarPagamento(correlationID) {
-  try {
-    const response = await api.get(`/payment/verify/${correlationID}`);
-    return response.data;
-  } catch (error) {
-    console.error('Erro ao verificar pagamento:', error.response?.data || error.message);
-    throw error;
-  }
-}
-
-// Exemplo de uso
-(async () => {
-  try {
-    const status = await verificarPagamento('pedido-123');
-    console.log('Status do pagamento:', status);
-  } catch (error) {
-    console.error('Erro:', error);
-  }
-})();
+```bash
+curl -X GET https://flowapplications.com.br/api/v1/payment/verify/pagamento-1234567890 \
+  -H "Authorization: Bearer seu_token_aqui"
 ```
 
 ### PHP
 
 ```php
 <?php
-
-$baseUrl = "https://flowapplications.com.br/api/v1";
-$apiToken = "seu_token_aqui";
+$apiToken = 'seu_token_aqui';
+$apiBaseUrl = 'https://flowapplications.com.br/api/v1';
 
 function verificarPagamento($correlationID) {
-    global $baseUrl, $apiToken;
+    global $apiToken, $apiBaseUrl;
     
-    $ch = curl_init($baseUrl . "/payment/verify/" . $correlationID);
+    $ch = curl_init($apiBaseUrl . '/payment/verify/' . $correlationID);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "Authorization: Bearer " . $apiToken
+        'Authorization: Bearer ' . $apiToken,
     ]);
     
     $response = curl_exec($ch);
     curl_close($ch);
     
-    return json_decode($response, true);
+    $result = json_decode($response, true);
+    
+    if ($result['success']) {
+        echo "Status: " . $result['charge']['status'] . "\n";
+        echo "Valor: " . $result['charge']['value'] . "\n";
+        if ($result['charge']['status'] === 'COMPLETED') {
+            echo "Transaction ID: " . $result['charge']['transactionID'] . "\n";
+        }
+    } else {
+        echo "Erro: " . $result['error'] . "\n";
+    }
 }
 
-// Exemplo de uso
-$status = verificarPagamento("pedido-123");
-print_r($status);
-
+verificarPagamento('test-1234567890');
 ?>
 ```
-
-### JavaScript/TypeScript
-
-```typescript
-const BASE_URL = "https://flowapplications.com.br/api/v1";
-const API_TOKEN = "seu_token_aqui";
-
-interface PaymentResponse {
-  success: boolean;
-  charge?: {
-    correlationID: string;
-    value: number;
-    status: "ACTIVE" | "COMPLETED" | "EXPIRED";
-    paymentLinkUrl: string;
-    qrCodeImage: string;
-    brCode: string;
-    globalID: string;
-    transactionID: string | null;
-    expiresIn?: number;
-    expiresDate?: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-  error?: string;
-}
-
-async function verificarPagamento(correlationID: string): Promise<PaymentResponse> {
-  const response = await fetch(`${BASE_URL}/payment/verify/${correlationID}`, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${API_TOKEN}`,
-    },
-  });
-  return response.json();
-}
-
-// Exemplo de uso
-const status = await verificarPagamento("pedido-123");
-console.log(status);
-```
-
-### Java
-
-```java
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.URI;
-import java.time.Duration;
-
-public class FlowPayAPI {
-    private static final String BASE_URL = "https://flowapplications.com.br/api/v1";
-    private static final String API_TOKEN = "seu_token_aqui";
-    
-    private static final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
-        .build();
-    
-    public static String verificarPagamento(String correlationID) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(BASE_URL + "/payment/verify/" + correlationID))
-            .header("Authorization", "Bearer " + API_TOKEN)
-            .GET()
-            .timeout(Duration.ofSeconds(10))
-            .build();
-        
-        HttpResponse<String> response = httpClient.send(request, 
-            HttpResponse.BodyHandlers.ofString());
-        
-        return response.body();
-    }
-    
-    public static void main(String[] args) {
-        try {
-            String status = verificarPagamento("pedido-123");
-            System.out.println(status);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
-```
-

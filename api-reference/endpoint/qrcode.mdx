@@ -1,0 +1,219 @@
+---
+title: 'Obter QR Code (Imagem PNG)'
+description: 'Retorna a imagem PNG do QR code do pagamento. Este endpoint é público e não requer autenticação'
+icon: "image"
+---
+
+## Endpoint
+
+<CodeGroup>
+
+```http
+GET /payment/qrcode/{correlationID}
+```
+
+</CodeGroup>
+
+Retorna a imagem PNG do QR code do pagamento. Este endpoint é **público** e **não requer autenticação**.
+
+<Info>
+Este é o único endpoint que não requer autenticação. Todos os outros endpoints requerem o token de API no header Authorization.
+</Info>
+
+## Headers
+
+Nenhum header obrigatório. Este endpoint é público.
+
+## Path Parameters
+
+<ParamField path="correlationID" type="string" required>
+  ID único do pagamento usado na criação
+</ParamField>
+
+## Request Example
+
+<RequestExample>
+
+```bash
+GET /payment/qrcode/test-1234567890
+```
+
+</RequestExample>
+
+## Response Examples
+
+### Sucesso (200)
+
+**Content-Type**: `image/png`
+
+**Body**: Arquivo binário PNG da imagem do QR code
+
+**Cache-Control**: `public, max-age=3600` (cache de 1 hora)
+
+## Uso
+
+### HTML - Tag img
+
+```html
+<img 
+  src="https://flowapplications.com.br/api/v1/payment/qrcode/test-1234567890" 
+  alt="QR Code PIX" 
+/>
+```
+
+### JavaScript - Exibir em elemento
+
+```javascript
+const correlationID = 'test-1234567890';
+const qrCodeUrl = `https://flowapplications.com.br/api/v1/payment/qrcode/${correlationID}`;
+
+// Usar em tag img
+document.getElementById('qr-code').src = qrCodeUrl;
+
+// Ou criar elemento dinamicamente
+const img = document.createElement('img');
+img.src = qrCodeUrl;
+img.alt = 'QR Code PIX';
+document.body.appendChild(img);
+```
+
+### React - Componente
+
+```jsx
+function QRCodeImage({ correlationID }) {
+  const qrCodeUrl = `https://flowapplications.com.br/api/v1/payment/qrcode/${correlationID}`;
+  
+  return (
+    <img 
+      src={qrCodeUrl} 
+      alt="QR Code PIX" 
+      style={{ maxWidth: '300px' }}
+    />
+  );
+}
+
+// Uso
+<QRCodeImage correlationID="test-1234567890" />
+```
+
+### Python - Download da imagem
+
+```python
+import requests
+
+def baixar_qrcode(correlation_id, caminho_salvar='qrcode.png'):
+    url = f'https://flowapplications.com.br/api/v1/payment/qrcode/{correlation_id}'
+    
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        with open(caminho_salvar, 'wb') as f:
+            f.write(response.content)
+        print(f'QR Code salvo em: {caminho_salvar}')
+    else:
+        print(f'Erro ao baixar QR Code: {response.status_code}')
+
+# Exemplo de uso
+baixar_qrcode('test-1234567890', 'qrcode_pagamento.png')
+```
+
+### cURL - Download da imagem
+
+```bash
+curl -X GET https://flowapplications.com.br/api/v1/payment/qrcode/pagamento-1234567890 \
+  --output qrcode.png
+```
+
+### PHP - Exibir imagem
+
+```php
+<?php
+function exibirQrCode($correlationID) {
+    $url = "https://flowapplications.com.br/api/v1/payment/qrcode/{$correlationID}";
+    return $url;
+}
+
+// Em HTML
+$correlationID = 'test-1234567890';
+$qrCodeUrl = exibirQrCode($correlationID);
+?>
+
+<img src="<?php echo $qrCodeUrl; ?>" alt="QR Code PIX" />
+
+<?php
+// Ou download
+function baixarQrCode($correlationID, $caminhoSalvar = 'qrcode.png') {
+    $url = "https://flowapplications.com.br/api/v1/payment/qrcode/{$correlationID}";
+    $imagem = file_get_contents($url);
+    file_put_contents($caminhoSalvar, $imagem);
+    echo "QR Code salvo em: {$caminhoSalvar}\n";
+}
+
+baixarQrCode('test-1234567890');
+?>
+```
+
+## Erros
+
+### 400 Bad Request
+
+`correlationID` não fornecido.
+
+**Response**: Texto simples com mensagem de erro
+
+### 404 Not Found
+
+QR code não encontrado para o `correlationID` fornecido.
+
+**Response**: Texto simples com mensagem de erro
+
+### 500 Internal Server Error
+
+Erro interno do servidor.
+
+**Response**: Texto simples com mensagem de erro
+
+## Exemplo Completo - Integração
+
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagar com PIX</title>
+</head>
+<body>
+    <h1>Pagamento PIX</h1>
+    
+    <div id="qrcode-container">
+        <!-- QR Code será exibido aqui -->
+    </div>
+    
+    <script>
+        // Após criar o pagamento, use o correlationID para exibir o QR Code
+        const correlationID = 'test-1234567890'; // Vem da resposta de criar pagamento
+        const qrCodeUrl = `https://flowapplications.com.br/api/v1/payment/qrcode/${correlationID}`;
+        
+        // Criar elemento img
+        const img = document.createElement('img');
+        img.src = qrCodeUrl;
+        img.alt = 'QR Code PIX';
+        img.style.maxWidth = '300px';
+        img.style.border = '1px solid #ddd';
+        img.style.padding = '10px';
+        img.style.background = 'white';
+        
+        // Adicionar ao container
+        document.getElementById('qrcode-container').appendChild(img);
+        
+        console.log('QR Code URL:', qrCodeUrl);
+    </script>
+</body>
+</html>
+```
+
+<Note>
+A URL do QR Code pode ser usada diretamente em tags `<img>` HTML. A imagem é cacheada por 1 hora para melhor performance.
+</Note>
+

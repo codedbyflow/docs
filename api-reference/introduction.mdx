@@ -1,26 +1,12 @@
 ---
-title: 'Introdução à API FlowPay'
-description: 'Documentação completa da API FlowPay para integração de pagamentos PIX'
+title: 'Introdução à API FlowApplications'
+description: 'Documentação completa da API FlowApplications v1 para integração de pagamentos PIX'
 icon: "rocket"
 ---
 
-## Bem-vindo à API FlowPay
+## Documentação da API FlowApplications v1
 
-A API FlowPay permite que você integre facilmente pagamentos PIX em seu sistema. Nossa API é RESTful, simples de usar e oferece todas as funcionalidades necessárias para processar pagamentos via PIX.
-
-## Autenticação
-
-Todas as requisições devem incluir seu token de API no header `Authorization`:
-
-```
-Authorization: Bearer {seu_token_api}
-```
-
-Seu token de API pode ser obtido no dashboard após aprovação da sua solicitação.
-
-<Warning>
-Mantenha seu token de API seguro e nunca o compartilhe publicamente. O token deve ser mantido como uma variável de ambiente ou configuração segura.
-</Warning>
+Bem-vindo à documentação da API FlowApplications! Nossa API permite que você integre facilmente pagamentos PIX dinâmicos em seu sistema usando a Woovi.
 
 ## Base URL
 
@@ -30,30 +16,70 @@ Todas as requisições devem ser feitas para a seguinte base URL:
 https://flowapplications.com.br/api/v1
 ```
 
+## Autenticação
+
+Todos os endpoints (exceto o endpoint de QR code) requerem autenticação via Bearer Token no header:
+
+```
+Authorization: Bearer {seu_token_api}
+```
+
+O token da API pode ser gerado através do dashboard após aprovação da solicitação de acesso à API.
+
+<Warning>
+Mantenha seu token de API seguro e nunca o compartilhe publicamente. O token deve ser mantido como uma variável de ambiente ou configuração segura.
+</Warning>
+
 ## Status de Pagamento
 
 Os pagamentos podem ter os seguintes status:
 
-- **ACTIVE**: Pagamento criado e aguardando pagamento
+- **ACTIVE**: Pagamento pendente, aguardando pagamento
 - **COMPLETED**: Pagamento confirmado e concluído
-- **EXPIRED**: Pagamento expirado (não foi pago dentro do prazo)
+- **EXPIRED**: Pagamento expirado, não pode mais ser pago
+
+## Códigos de Status HTTP
+
+### 2xx - Sucesso
+
+- **200 OK**: Requisição bem-sucedida
+
+### 4xx - Erro do Cliente
+
+- **400 Bad Request**: Parâmetros inválidos ou faltando
+- **401 Unauthorized**: Token de autenticação inválido, expirado ou não fornecido
+- **404 Not Found**: Recurso não encontrado (pagamento, QR code, etc)
+
+### 5xx - Erro do Servidor
+
+- **500 Internal Server Error**: Erro interno do servidor, configuração faltando ou erro na comunicação com a Woovi
 
 ## Limites e Restrições
 
 - **Valor mínimo**: R$ 0,01
 - **Valor máximo**: Sem limite
 - **Tempo de expiração mínimo**: 300 segundos (5 minutos)
-- **CorrelationID**: Um `correlationID` só pode ser usado uma vez por usuário
-- **Segurança**: O token de API deve ser mantido seguro e não compartilhado
+- **CorrelationID**: Deve ser único para cada pagamento. Use um formato que garanta unicidade (ex: UUID, timestamp, ID do pedido)
+- **Rate Limits**: Respeite os limites de requisições. Em caso de abuso, o acesso à API pode ser suspenso
 
-## Códigos de Erro HTTP
+## Notas Importantes
 
-- **200**: Sucesso
-- **400**: Requisição inválida (dados faltando ou incorretos)
-- **401**: Não autorizado (token inválido ou ausente)
-- **404**: Recurso não encontrado
-- **500**: Erro interno do servidor
+1. **QR Code Image**: O campo `qrCodeImage` retorna uma URL para acessar a imagem PNG do QR code diretamente. Você pode usar essa URL em tags `<img>` ou baixar a imagem.
+
+2. **paymentLinkUrl**: Este campo foi **removido** da resposta da API. Use o `qrCodeImage` ou o `brCode` para realizar o pagamento.
+
+3. **CorrelationID**: Deve ser único para cada pagamento. Use um formato que garanta unicidade (ex: UUID, timestamp, ID do pedido).
+
+4. **Valores**: Os valores são sempre em reais (R$). A API converte automaticamente para centavos ao enviar para a Woovi.
+
+5. **Expiração**: Se não fornecer `expiresIn` ou `expiresDate`, a Woovi pode usar um tempo padrão. Recomendamos sempre especificar o tempo de expiração.
+
+6. **Webhooks**: Consulte a documentação sobre webhooks para receber notificações automáticas quando um pagamento for confirmado.
 
 ## Suporte
 
-Para dúvidas ou problemas, entre em contato através do dashboard ou envie um email para suporte.
+Para suporte ou dúvidas sobre a API:
+
+- **Documentação completa**: https://docs.flowapplications.com.br
+- **Dashboard**: https://flowapplications.com.br/dashboard
+- **Email**: suporte@flowapplications.com.br

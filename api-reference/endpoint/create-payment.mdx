@@ -1,6 +1,6 @@
 ---
-title: 'Criar Pagamento'
-description: 'Cria uma nova cobrança PIX e retorna o QR Code e link de pagamento'
+title: 'Criar Pagamento PIX'
+description: 'Cria um novo pagamento PIX dinâmico usando a Woovi'
 icon: "credit-card"
 ---
 
@@ -14,7 +14,7 @@ POST /payment/create
 
 </CodeGroup>
 
-Cria uma nova cobrança PIX e retorna o QR Code e link de pagamento.
+Cria um novo pagamento PIX dinâmico usando a Woovi.
 
 ## Headers
 
@@ -26,23 +26,23 @@ Cria uma nova cobrança PIX e retorna o QR Code e link de pagamento.
 ## Body Parameters
 
 <ParamField body="correlationID" type="string" required>
-  ID único para rastreamento do pagamento. Este ID deve ser único por usuário e não pode ser reutilizado.
+  ID único para rastreamento do pagamento. Deve ser único por pagamento. Recomendamos usar UUID, timestamp ou ID do pedido.
 </ParamField>
 
 <ParamField body="value" type="number" required>
-  Valor em reais do pagamento (mínimo R$ 0,01)
+  Valor do pagamento em reais (ex: 10.50 para R$ 10,50). Valor mínimo: R$ 0,01
 </ParamField>
 
 <ParamField body="comment" type="string">
-  Comentário ou descrição do pagamento
+  Descrição ou comentário sobre o pagamento (opcional)
 </ParamField>
 
 <ParamField body="expiresIn" type="number">
-  Tempo em segundos até a expiração do pagamento (mínimo 300 segundos)
+  Tempo de expiração em segundos (mínimo 300 segundos = 5 minutos). Se `expiresDate` for fornecido, este campo será ignorado.
 </ParamField>
 
 <ParamField body="expiresDate" type="string">
-  Data de expiração no formato ISO 8601 (ex: "2024-12-31T23:59:59Z")
+  Data de expiração no formato ISO 8601 (ex: "2024-12-31T23:59:59Z"). Se fornecido, `expiresIn` será ignorado.
 </ParamField>
 
 <ParamField body="customer" type="object">
@@ -62,15 +62,15 @@ Cria uma nova cobrança PIX e retorna o QR Code e link de pagamento.
 </ParamField>
 
 <ParamField body="customer.taxID" type="object">
-  Documento fiscal do cliente
+  Documento de identificação do cliente
 </ParamField>
 
 <ParamField body="customer.taxID.taxID" type="string">
-  Número do documento (CPF ou CNPJ)
+  CPF ou CNPJ do cliente
 </ParamField>
 
 <ParamField body="customer.taxID.type" type="string">
-  Tipo do documento: "BR:CPF" ou "BR:CNPJ"
+  Tipo do documento. Valores permitidos: `"BR:CPF"` ou `"BR:CNPJ"`
 </ParamField>
 
 ## Request Example
@@ -79,14 +79,13 @@ Cria uma nova cobrança PIX e retorna o QR Code e link de pagamento.
 
 ```json
 {
-  "correlationID": "pedido-123",
+  "correlationID": "test-1234567890",
   "value": 10.50,
-  "comment": "Pagamento do pedido #123",
+  "comment": "Pagamento de teste",
   "expiresIn": 3600,
-  "expiresDate": "2024-12-31T23:59:59Z",
   "customer": {
-    "name": "João Silva",
-    "email": "joao@example.com",
+    "name": "Cliente Teste",
+    "email": "cliente@teste.com",
     "phone": "+5511999999999",
     "taxID": {
       "taxID": "12345678900",
@@ -108,45 +107,83 @@ Cria uma nova cobrança PIX e retorna o QR Code e link de pagamento.
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "correlationID": "test-1234567890",
     "value": 10.50,
     "status": "ACTIVE",
-    "paymentLinkUrl": "https://openpix.com.br/pay/...",
-    "qrCodeImage": "https://api.openpix.com.br/api/qrcode/base64/...",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "qrCodeImage": "https://flowapplications.com.br/api/v1/payment/qrcode/test-1234567890",
+    "brCode": "00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-426614174000520400005303986540510.505802BR5925NOME DO BENEFICIARIO6009SAO PAULO62070503***6304ABCD",
+    "globalID": "630d7415-95bf-4809-b707-3755ea031677",
     "transactionID": null,
     "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:00:00Z"
+    "expiresDate": "2024-12-31T23:59:59.000Z",
+    "createdAt": "2024-01-01T12:00:00.000Z",
+    "updatedAt": "2024-01-01T12:00:00.000Z"
   }
 }
 ```
 
 </ResponseExample>
 
-### Erro - Dados Inválidos (400)
+## Campos da Resposta
+
+- **correlationID**: ID único do pagamento fornecido por você
+- **value**: Valor do pagamento em reais
+- **status**: Status do pagamento (`ACTIVE`, `COMPLETED`, `EXPIRED`)
+- **qrCodeImage**: URL da imagem PNG do QR code para pagamento. Pode ser usado diretamente em tags `<img>`
+- **brCode**: Código PIX copia e cola (EMV)
+- **globalID**: ID global da cobrança na Woovi
+- **transactionID**: ID da transação (preenchido quando o pagamento for confirmado)
+- **expiresIn**: Tempo de expiração em segundos
+- **expiresDate**: Data e hora de expiração
+- **createdAt**: Data e hora de criação
+- **updatedAt**: Data e hora da última atualização
+
+<Note>
+O campo `paymentLinkUrl` foi removido da resposta da API. Use o `qrCodeImage` ou o `brCode` para realizar o pagamento.
+</Note>
+
+## Erros
+
+### 400 Bad Request
+
+Valores obrigatórios faltando ou inválidos.
 
 <ResponseExample>
 
 ```json
 {
   "success": false,
-  "error": "Valor e correlationID são obrigatórios."
+  "error": "correlationID e value são obrigatórios"
 }
 ```
 
 </ResponseExample>
 
-### Erro - Token Inválido (401)
+### 401 Unauthorized
+
+Token inválido ou não fornecido.
 
 <ResponseExample>
 
 ```json
 {
   "success": false,
-  "error": "Token de API inválido."
+  "error": "Token de API inválido ou não fornecido"
+}
+```
+
+</ResponseExample>
+
+### 500 Internal Server Error
+
+Erro interno do servidor ou configuração da Woovi não encontrada.
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "Erro interno do servidor"
 }
 ```
 
@@ -154,179 +191,151 @@ Cria uma nova cobrança PIX e retorna o QR Code e link de pagamento.
 
 ## Exemplos de Código
 
-### cURL
+### JavaScript/Node.js
 
-```bash
-curl -X POST \
-  https://flowapplications.com.br/api/v1/payment/create \
-  -H "Authorization: Bearer seu_token_aqui" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "correlationID": "pedido-123",
-    "value": 10.50,
-    "comment": "Pagamento do pedido #123"
-  }'
+```javascript
+const API_TOKEN = 'seu_token_aqui';
+const API_BASE_URL = 'https://flowapplications.com.br/api/v1';
+
+async function criarPagamento() {
+  const correlationID = `pagamento-${Date.now()}`;
+  
+  const response = await fetch(`${API_BASE_URL}/payment/create`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      correlationID: correlationID,
+      value: 10.50,
+      comment: 'Pagamento de teste',
+      expiresIn: 3600,
+      customer: {
+        name: 'Cliente Teste',
+        email: 'cliente@teste.com',
+      }
+    }),
+  });
+  
+  const data = await response.json();
+  
+  if (data.success) {
+    console.log('Pagamento criado:', data.charge);
+    console.log('QR Code:', data.charge.qrCodeImage);
+    console.log('Código PIX:', data.charge.brCode);
+  } else {
+    console.error('Erro:', data.error);
+  }
+}
 ```
 
 ### Python
 
 ```python
 import requests
+import time
 
-BASE_URL = "https://flowapplications.com.br/api/v1"
-API_TOKEN = "seu_token_aqui"
+API_TOKEN = 'seu_token_aqui'
+API_BASE_URL = 'https://flowapplications.com.br/api/v1'
 
-headers = {
-    "Authorization": f"Bearer {API_TOKEN}",
-    "Content-Type": "application/json"
-}
-
-def criar_pagamento(correlation_id, valor, comentario=None):
-    url = f"{BASE_URL}/payment/create"
-    data = {
-        "correlationID": correlation_id,
-        "value": valor
-    }
-    if comentario:
-        data["comment"] = comentario
+def criar_pagamento():
+    correlation_id = f'pagamento-{int(time.time())}'
     
-    response = requests.post(url, json=data, headers=headers)
-    return response.json()
-
-# Exemplo de uso
-pagamento = criar_pagamento("pedido-123", 10.50, "Pagamento do pedido #123")
-print(pagamento)
+    headers = {
+        'Authorization': f'Bearer {API_TOKEN}',
+        'Content-Type': 'application/json',
+    }
+    
+    payload = {
+        'correlationID': correlation_id,
+        'value': 10.50,
+        'comment': 'Pagamento de teste',
+        'expiresIn': 3600,
+        'customer': {
+            'name': 'Cliente Teste',
+            'email': 'cliente@teste.com',
+        }
+    }
+    
+    response = requests.post(
+        f'{API_BASE_URL}/payment/create',
+        headers=headers,
+        json=payload
+    )
+    
+    data = response.json()
+    
+    if data.get('success'):
+        print('Pagamento criado:', data['charge'])
+        print('QR Code:', data['charge']['qrCodeImage'])
+        print('Código PIX:', data['charge']['brCode'])
+    else:
+        print('Erro:', data.get('error'))
 ```
 
-### Node.js
+### cURL
 
-```javascript
-const axios = require('axios');
-
-const BASE_URL = 'https://flowapplications.com.br/api/v1';
-const API_TOKEN = 'seu_token_aqui';
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Authorization': `Bearer ${API_TOKEN}`,
-    'Content-Type': 'application/json'
-  }
-});
-
-async function criarPagamento(correlationID, valor, comentario = null) {
-  const data = {
-    correlationID,
-    value: valor
-  };
-  
-  if (comentario) {
-    data.comment = comentario;
-  }
-  
-  try {
-    const response = await api.post('/payment/create', data);
-    return response.data;
-  } catch (error) {
-    console.error('Erro ao criar pagamento:', error.response?.data || error.message);
-    throw error;
-  }
-}
-
-// Exemplo de uso
-(async () => {
-  try {
-    const pagamento = await criarPagamento('pedido-123', 10.50, 'Pagamento do pedido #123');
-    console.log('Pagamento criado:', pagamento);
-  } catch (error) {
-    console.error('Erro:', error);
-  }
-})();
+```bash
+curl -X POST https://flowapplications.com.br/api/v1/payment/create \
+  -H "Authorization: Bearer seu_token_aqui" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "correlationID": "pagamento-1234567890",
+    "value": 10.50,
+    "comment": "Pagamento de teste",
+    "expiresIn": 3600,
+    "customer": {
+      "name": "Cliente Teste",
+      "email": "cliente@teste.com"
+    }
+  }'
 ```
 
 ### PHP
 
 ```php
 <?php
+$apiToken = 'seu_token_aqui';
+$apiBaseUrl = 'https://flowapplications.com.br/api/v1';
 
-$baseUrl = "https://flowapplications.com.br/api/v1";
-$apiToken = "seu_token_aqui";
-
-function criarPagamento($correlationID, $valor, $comentario = null) {
-    global $baseUrl, $apiToken;
+function criarPagamento() {
+    global $apiToken, $apiBaseUrl;
+    
+    $correlationID = 'pagamento-' . time();
     
     $data = [
-        "correlationID" => $correlationID,
-        "value" => $valor
+        'correlationID' => $correlationID,
+        'value' => 10.50,
+        'comment' => 'Pagamento de teste',
+        'expiresIn' => 3600,
+        'customer' => [
+            'name' => 'Cliente Teste',
+            'email' => 'cliente@teste.com',
+        ]
     ];
     
-    if ($comentario) {
-        $data["comment"] = $comentario;
-    }
-    
-    $ch = curl_init($baseUrl . "/payment/create");
+    $ch = curl_init($apiBaseUrl . '/payment/create');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "Authorization: Bearer " . $apiToken,
-        "Content-Type: application/json"
+        'Authorization: Bearer ' . $apiToken,
+        'Content-Type: application/json',
     ]);
     
     $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     
-    return json_decode($response, true);
+    $result = json_decode($response, true);
+    
+    if ($result['success']) {
+        echo "Pagamento criado: " . $result['charge']['correlationID'] . "\n";
+        echo "QR Code: " . $result['charge']['qrCodeImage'] . "\n";
+    } else {
+        echo "Erro: " . $result['error'] . "\n";
+    }
 }
-
-// Exemplo de uso
-$pagamento = criarPagamento("pedido-123", 10.50, "Pagamento do pedido #123");
-print_r($pagamento);
-
 ?>
 ```
-
-### JavaScript/TypeScript
-
-```typescript
-const BASE_URL = "https://flowapplications.com.br/api/v1";
-const API_TOKEN = "seu_token_aqui";
-
-interface CreatePaymentRequest {
-  correlationID: string;
-  value: number;
-  comment?: string;
-  expiresIn?: number;
-  expiresDate?: string;
-  customer?: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    taxID?: {
-      taxID: string;
-      type: "BR:CPF" | "BR:CNPJ";
-    };
-  };
-}
-
-async function criarPagamento(data: CreatePaymentRequest) {
-  const response = await fetch(`${BASE_URL}/payment/create`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${API_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-  return response.json();
-}
-
-// Exemplo de uso
-const pagamento = await criarPagamento({
-  correlationID: "pedido-123",
-  value: 10.50,
-  comment: "Pagamento do pedido #123"
-});
-console.log(pagamento);
-```
-
