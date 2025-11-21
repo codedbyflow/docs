@@ -41,7 +41,7 @@ import (
     "time"
 )
 
-const BaseURL = "https://flowapplications.com.br/api/v1"
+const BaseURL = "https://www.flowapplications.com.br/api/v1"
 
 type Client struct {
     BaseURL    string
@@ -74,7 +74,6 @@ type PaymentCharge struct {
     CorrelationID  string    `json:"correlationID"`
     Value          float64   `json:"value"`
     Status         string    `json:"status"` // ACTIVE, COMPLETED, EXPIRED
-    PaymentLinkURL string    `json:"paymentLinkUrl"`
     QRCodeImage    string    `json:"qrCodeImage"`
     BRCode         string    `json:"brCode"`
     GlobalID       string    `json:"globalID"`
@@ -164,7 +163,7 @@ func NewClientResty(apiToken string) *ClientResty {
     }
     
     client := resty.New()
-    client.SetBaseURL("https://flowapplications.com.br/api/v1")
+    client.SetBaseURL("https://www.flowapplications.com.br/api/v1")
     client.SetTimeout(30 * time.Second)
     client.SetHeader("Authorization", fmt.Sprintf("Bearer %s", apiToken))
     client.SetHeader("Content-Type", "application/json")
@@ -215,6 +214,71 @@ func (c *ClientResty) VerifyPayment(correlationID string) (*PaymentResponse, err
 
 </CodeGroup>
 
+## Resposta da API
+
+### Resposta de Sucesso - Criar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "ACTIVE",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": null,
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Sucesso - Verificar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "COMPLETED",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": "E1234567820240101120000",
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:05:30Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Erro (400/401/404/500)
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "correlationID e value são obrigatórios"
+}
+```
+
+</ResponseExample>
+
 ## Criar Pagamento
 
 <CodeGroup>
@@ -247,7 +311,6 @@ func main() {
     if resp.Success && resp.Charge != nil {
         charge := resp.Charge
         fmt.Printf("✅ Pagamento criado com sucesso!\n")
-        fmt.Printf("📱 Link: %s\n", charge.PaymentLinkURL)
         fmt.Printf("🔲 QR Code: %s\n", charge.QRCodeImage)
         fmt.Printf("📋 BR Code: %s\n", charge.BRCode)
     } else {
@@ -297,7 +360,7 @@ func main() {
                     "correlationID": charge.CorrelationID,
                     "qrCode":        charge.QRCodeImage,
                     "brCode":        charge.BRCode,
-                    "link":          charge.PaymentLinkURL,
+                    "qrCode":        charge.QRCodeImage,
                 },
             })
         } else {

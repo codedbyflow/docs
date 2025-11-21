@@ -73,9 +73,9 @@ Cria um novo pagamento PIX dinâmico usando a Woovi.
   Tipo do documento. Valores permitidos: `"BR:CPF"` ou `"BR:CNPJ"`
 </ParamField>
 
-## Request Example
+## Try It
 
-<RequestExample>
+<RequestExample url="https://www.flowapplications.com.br/api/v1/payment/create" method="POST" auth="bearer" authParam="seu_token_aqui">
 
 ```json
 {
@@ -111,7 +111,7 @@ Cria um novo pagamento PIX dinâmico usando a Woovi.
     "correlationID": "pedido-123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
     "brCode": "00020126580014br.gov.bcb.pix...",
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": null,
@@ -196,7 +196,7 @@ Erro interno do servidor ou configuração da Woovi não encontrada.
 
 ```javascript
 const API_TOKEN = 'seu_token_aqui';
-const API_BASE_URL = 'https://flowapplications.com.br/api/v1';
+const API_BASE_URL = 'https://www.flowapplications.com.br/api/v1';
 
 async function criarPagamento() {
   const correlationID = `pagamento-${Date.now()}`;
@@ -238,7 +238,7 @@ import requests
 import time
 
 API_TOKEN = 'seu_token_aqui'
-API_BASE_URL = 'https://flowapplications.com.br/api/v1'
+API_BASE_URL = 'https://www.flowapplications.com.br/api/v1'
 
 def criar_pagamento():
     correlation_id = f'pagamento-{int(time.time())}'
@@ -278,7 +278,7 @@ def criar_pagamento():
 ### cURL
 
 ```bash
-curl -X POST https://flowapplications.com.br/api/v1/payment/create \
+curl -X POST https://www.flowapplications.com.br/api/v1/payment/create \
   -H "Authorization: Bearer seu_token_aqui" \
   -H "Content-Type: application/json" \
   -d '{
@@ -298,7 +298,7 @@ curl -X POST https://flowapplications.com.br/api/v1/payment/create \
 ```php
 <?php
 $apiToken = 'seu_token_aqui';
-$apiBaseUrl = 'https://flowapplications.com.br/api/v1';
+$apiBaseUrl = 'https://www.flowapplications.com.br/api/v1';
 
 function criarPagamento() {
     global $apiToken, $apiBaseUrl;

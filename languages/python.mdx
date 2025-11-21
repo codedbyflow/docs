@@ -37,7 +37,7 @@ import os
 from typing import Optional, Dict, Any
 
 class FlowPayAPI:
-    BASE_URL = "https://flowapplications.com.br/api/v1"
+    BASE_URL = "https://www.flowapplications.com.br/api/v1"
     
     def __init__(self, api_token: Optional[str] = None):
         self.api_token = api_token or os.getenv("FLOWPAY_API_TOKEN")
@@ -95,7 +95,7 @@ import os
 from typing import Optional, Dict, Any
 
 class FlowPayAPIAsync:
-    BASE_URL = "https://flowapplications.com.br/api/v1"
+    BASE_URL = "https://www.flowapplications.com.br/api/v1"
     
     def __init__(self, api_token: Optional[str] = None):
         self.api_token = api_token or os.getenv("FLOWPAY_API_TOKEN")
@@ -156,6 +156,71 @@ if __name__ == "__main__":
 
 </CodeGroup>
 
+## Resposta da API
+
+### Resposta de Sucesso - Criar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "ACTIVE",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": null,
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Sucesso - Verificar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "COMPLETED",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": "E1234567820240101120000",
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:05:30Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Erro (400/401/404/500)
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "correlationID e value são obrigatórios"
+}
+```
+
+</ResponseExample>
+
 ## Criar Pagamento
 
 <CodeGroup>
@@ -182,7 +247,6 @@ def criar_pagamento(correlation_id: str, valor: float, comentario: str = None):
         if resultado.get("success") and resultado.get("charge"):
             charge = resultado["charge"]
             print(f"✅ Pagamento criado com sucesso!")
-            print(f"📱 Link: {charge['paymentLinkUrl']}")
             print(f"🔲 QR Code: {charge['qrCodeImage']}")
             print(f"📋 BR Code: {charge['brCode']}")
             return charge
@@ -240,7 +304,7 @@ def criar_pagamento():
                     "correlationID": charge["correlationID"],
                     "qrCode": charge["qrCodeImage"],
                     "brCode": charge["brCode"],
-                    "link": charge["paymentLinkUrl"],
+                    "link": charge["qrCodeImage"],
                     "expiraEm": charge.get("expiresDate")
                 }
             }), 200
@@ -318,7 +382,7 @@ def criar_pagamento(request):
                     "correlationID": charge["correlationID"],
                     "qrCode": charge["qrCodeImage"],
                     "brCode": charge["brCode"],
-                    "link": charge["paymentLinkUrl"]
+                    "link": charge["qrCodeImage"]
                 }
             }, status=200)
         else:
@@ -488,7 +552,7 @@ class EcommercePagamento:
                     "correlationID": resultado["charge"]["correlationID"],
                     "qrCode": resultado["charge"]["qrCodeImage"],
                     "brCode": resultado["charge"]["brCode"],
-                    "link": resultado["charge"]["paymentLinkUrl"],
+                    "link": resultado["charge"]["qrCodeImage"],
                     "expiraEm": resultado["charge"].get("expiresDate")
                 }
             }

@@ -30,12 +30,12 @@ Nenhum header obrigatório. Este endpoint é público.
   ID único do pagamento usado na criação
 </ParamField>
 
-## Request Example
+## Try It
 
-<RequestExample>
+<RequestExample url="https://www.flowapplications.com.br/api/v1/payment/qrcode/{correlationID}" method="GET" pathParams={{"correlationID":"pedido-123"}}>
 
 ```bash
-GET /payment/qrcode/test-1234567890
+GET /payment/qrcode/pedido-123
 ```
 
 </RequestExample>
@@ -56,7 +56,7 @@ GET /payment/qrcode/test-1234567890
 
 ```html
 <img 
-  src="https://flowapplications.com.br/api/v1/payment/qrcode/test-1234567890" 
+  src="https://www.flowapplications.com.br/api/v1/payment/qrcode/test-1234567890" 
   alt="QR Code PIX" 
 />
 ```
@@ -65,7 +65,7 @@ GET /payment/qrcode/test-1234567890
 
 ```javascript
 const correlationID = 'test-1234567890';
-const qrCodeUrl = `https://flowapplications.com.br/api/v1/payment/qrcode/${correlationID}`;
+const qrCodeUrl = `https://www.flowapplications.com.br/api/v1/payment/qrcode/${correlationID}`;
 
 // Usar em tag img
 document.getElementById('qr-code').src = qrCodeUrl;
@@ -81,7 +81,7 @@ document.body.appendChild(img);
 
 ```jsx
 function QRCodeImage({ correlationID }) {
-  const qrCodeUrl = `https://flowapplications.com.br/api/v1/payment/qrcode/${correlationID}`;
+  const qrCodeUrl = `https://www.flowapplications.com.br/api/v1/payment/qrcode/${correlationID}`;
   
   return (
     <img 
@@ -102,7 +102,7 @@ function QRCodeImage({ correlationID }) {
 import requests
 
 def baixar_qrcode(correlation_id, caminho_salvar='qrcode.png'):
-    url = f'https://flowapplications.com.br/api/v1/payment/qrcode/{correlation_id}'
+    url = f'https://www.flowapplications.com.br/api/v1/payment/qrcode/{correlation_id}'
     
     response = requests.get(url)
     
@@ -120,7 +120,7 @@ baixar_qrcode('test-1234567890', 'qrcode_pagamento.png')
 ### cURL - Download da imagem
 
 ```bash
-curl -X GET https://flowapplications.com.br/api/v1/payment/qrcode/pagamento-1234567890 \
+curl -X GET https://www.flowapplications.com.br/api/v1/payment/qrcode/pagamento-1234567890 \
   --output qrcode.png
 ```
 
@@ -129,7 +129,7 @@ curl -X GET https://flowapplications.com.br/api/v1/payment/qrcode/pagamento-1234
 ```php
 <?php
 function exibirQrCode($correlationID) {
-    $url = "https://flowapplications.com.br/api/v1/payment/qrcode/{$correlationID}";
+    $url = "https://www.flowapplications.com.br/api/v1/payment/qrcode/{$correlationID}";
     return $url;
 }
 
@@ -143,7 +143,7 @@ $qrCodeUrl = exibirQrCode($correlationID);
 <?php
 // Ou download
 function baixarQrCode($correlationID, $caminhoSalvar = 'qrcode.png') {
-    $url = "https://flowapplications.com.br/api/v1/payment/qrcode/{$correlationID}";
+    $url = "https://www.flowapplications.com.br/api/v1/payment/qrcode/{$correlationID}";
     $imagem = file_get_contents($url);
     file_put_contents($caminhoSalvar, $imagem);
     echo "QR Code salvo em: {$caminhoSalvar}\n";
@@ -193,7 +193,7 @@ Erro interno do servidor.
     <script>
         // Após criar o pagamento, use o correlationID para exibir o QR Code
         const correlationID = 'test-1234567890'; // Vem da resposta de criar pagamento
-        const qrCodeUrl = `https://flowapplications.com.br/api/v1/payment/qrcode/${correlationID}`;
+        const qrCodeUrl = `https://www.flowapplications.com.br/api/v1/payment/qrcode/${correlationID}`;
         
         // Criar elemento img
         const img = document.createElement('img');

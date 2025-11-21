@@ -34,7 +34,7 @@ yarn add axios
 // flowpay.js
 const axios = require('axios');
 
-const BASE_URL = 'https://flowapplications.com.br/api/v1';
+const BASE_URL = 'https://www.flowapplications.com.br/api/v1';
 const API_TOKEN = process.env.FLOWPAY_API_TOKEN || 'seu_token_aqui';
 
 // Criar instância do axios com configurações padrão
@@ -67,7 +67,7 @@ module.exports = flowpay;
 // flowpay.ts
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
-const BASE_URL = 'https://flowapplications.com.br/api/v1';
+const BASE_URL = 'https://www.flowapplications.com.br/api/v1';
 const API_TOKEN = process.env.FLOWPAY_API_TOKEN || 'seu_token_aqui';
 
 interface CreatePaymentRequest {
@@ -91,7 +91,6 @@ interface PaymentCharge {
   correlationID: string;
   value: number;
   status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED';
-  paymentLinkUrl: string;
   qrCodeImage: string;
   brCode: string;
   globalID: string;
@@ -180,7 +179,6 @@ async function criarPagamento(correlationID, valor, comentario = null) {
 
     if (success && charge) {
       console.log('✅ Pagamento criado com sucesso!');
-      console.log('📱 Link de pagamento:', charge.paymentLinkUrl);
       console.log('🔲 QR Code:', charge.qrCodeImage);
       console.log('📋 BR Code:', charge.brCode);
       return charge;
@@ -207,6 +205,33 @@ async function criarPagamento(correlationID, valor, comentario = null) {
   }
 })();
 ```
+
+### Resposta da API (200 OK)
+
+Quando o pagamento é criado com sucesso, a API retorna:
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "ACTIVE",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": null,
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  }
+}
+```
+
+</ResponseExample>
 
 ```javascript Express.js
 // routes/payment.js
@@ -245,7 +270,6 @@ router.post('/create', async (req, res) => {
           correlationID: charge.correlationID,
           value: charge.value,
           status: charge.status,
-          paymentLinkUrl: charge.paymentLinkUrl,
           qrCodeImage: charge.qrCodeImage,
           brCode: charge.brCode
         }
@@ -273,7 +297,7 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PaymentService {
-  private readonly baseURL = 'https://flowapplications.com.br/api/v1';
+  private readonly baseURL = 'https://www.flowapplications.com.br/api/v1';
   private readonly apiToken = process.env.FLOWPAY_API_TOKEN;
 
   constructor(private httpService: HttpService) {}
@@ -333,6 +357,71 @@ export class PaymentService {
 ```
 
 </CodeGroup>
+
+## Resposta da API
+
+### Resposta de Sucesso - Criar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "ACTIVE",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": null,
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Sucesso - Verificar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "COMPLETED",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": "E1234567820240101120000",
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:05:30Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Erro (400/401/404/500)
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "correlationID e value são obrigatórios"
+}
+```
+
+</ResponseExample>
 
 ## Verificar Pagamento
 
@@ -479,7 +568,7 @@ app.post('/pedidos/:id/pagamento', async (req, res) => {
           correlationID: response.data.charge.correlationID,
           qrCode: response.data.charge.qrCodeImage,
           brCode: response.data.charge.brCode,
-          link: response.data.charge.paymentLinkUrl,
+          link: response.data.charge.qrCodeImage,
           expiraEm: response.data.charge.expiresDate
         }
       });
@@ -568,7 +657,7 @@ Crie um arquivo `.env`:
 
 ```bash
 FLOWPAY_API_TOKEN=seu_token_aqui
-FLOWPAY_BASE_URL=https://flowapplications.com.br/api/v1
+FLOWPAY_BASE_URL=https://www.flowapplications.com.br/api/v1
 ```
 
 E use com `dotenv`:

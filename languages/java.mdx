@@ -60,7 +60,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 public class FlowPayAPI {
-    private static final String BASE_URL = "https://flowapplications.com.br/api/v1";
+    private static final String BASE_URL = "https://www.flowapplications.com.br/api/v1";
     private final String apiToken;
     private final HttpClient httpClient;
     private final Gson gson;
@@ -145,7 +145,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class FlowPayAPI {
-    private static final String BASE_URL = "https://flowapplications.com.br/api/v1";
+    private static final String BASE_URL = "https://www.flowapplications.com.br/api/v1";
     private final String apiToken;
     private final OkHttpClient httpClient;
     private final Gson gson;
@@ -261,7 +261,6 @@ public class PaymentCharge {
     private String correlationID;
     private Double value;
     private String status;
-    private String paymentLinkUrl;
     private String qrCodeImage;
     private String brCode;
     private String globalID;
@@ -295,6 +294,71 @@ public class PaymentResponse {
 }
 ```
 
+## Resposta da API
+
+### Resposta de Sucesso - Criar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "ACTIVE",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": null,
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Sucesso - Verificar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "COMPLETED",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": "E1234567820240101120000",
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:05:30Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Erro (400/401/404/500)
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "correlationID e value são obrigatórios"
+}
+```
+
+</ResponseExample>
+
 ## Criar Pagamento
 
 <CodeGroup>
@@ -319,7 +383,7 @@ public class CriarPagamento {
             if (response.getSuccess() && response.getCharge() != null) {
                 PaymentCharge charge = response.getCharge();
                 System.out.println("✅ Pagamento criado com sucesso!");
-                System.out.println("📱 Link: " + charge.getPaymentLinkUrl());
+                System.out.println("🔲 QR Code: " + charge.getQrCodeImage());
                 System.out.println("🔲 QR Code: " + charge.getQrCodeImage());
                 System.out.println("📋 BR Code: " + charge.getBrCode());
             } else {
@@ -399,7 +463,7 @@ public class PaymentController {
                         "correlationID", response.getCharge().getCorrelationID(),
                         "qrCode", response.getCharge().getQrCodeImage(),
                         "brCode", response.getCharge().getBrCode(),
-                        "link", response.getCharge().getPaymentLinkUrl()
+                        "qrCode", response.getCharge().getQrCodeImage()
                     )
                 ));
             }

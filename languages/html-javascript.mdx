@@ -24,7 +24,7 @@ Guia completo para integrar a API FlowPay em páginas HTML estáticas usando Jav
 // flowpay.js
 class FlowPayAPI {
     constructor(apiToken) {
-        this.baseURL = 'https://flowapplications.com.br/api/v1';
+        this.baseURL = 'https://www.flowapplications.com.br/api/v1';
         this.apiToken = apiToken || '';
         
         if (!this.apiToken) {
@@ -83,7 +83,7 @@ if (typeof module !== 'undefined' && module.exports) {
 // flowpay-xhr.js
 class FlowPayAPI {
     constructor(apiToken) {
-        this.baseURL = 'https://flowapplications.com.br/api/v1';
+        this.baseURL = 'https://www.flowapplications.com.br/api/v1';
         this.apiToken = apiToken || '';
     }
     
@@ -139,6 +139,71 @@ class FlowPayAPI {
 ```
 
 </CodeGroup>
+
+## Resposta da API
+
+### Resposta de Sucesso - Criar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "ACTIVE",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": null,
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Sucesso - Verificar Pagamento (200 OK)
+
+<ResponseExample>
+
+```json
+{
+  "success": true,
+  "charge": {
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "status": "COMPLETED",
+    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "brCode": "00020126580014br.gov.bcb.pix...",
+    "globalID": "550e8400-e29b-41d4-a716-446655440000",
+    "transactionID": "E1234567820240101120000",
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:05:30Z"
+  }
+}
+```
+
+</ResponseExample>
+
+### Resposta de Erro (400/401/404/500)
+
+<ResponseExample>
+
+```json
+{
+  "success": false,
+  "error": "correlationID e value são obrigatórios"
+}
+```
+
+</ResponseExample>
 
 ## Criar Pagamento
 
@@ -291,7 +356,7 @@ class FlowPayAPI {
                         <textarea readonly style="width: 100%; height: 60px; font-family: monospace;">${charge.brCode}</textarea>
                         
                         <p><strong>Link de Pagamento:</strong></p>
-                        <a href="${charge.paymentLinkUrl}" target="_blank">${charge.paymentLinkUrl}</a>
+                        <a href="${charge.qrCodeImage}" target="_blank">Ver QR Code</a>
                     `;
                 } else {
                     throw new Error(resultado.error || 'Erro desconhecido');
@@ -334,7 +399,7 @@ async function criarPagamento(apiToken, correlationID, valor, comentario = null)
         if (resultado.success && resultado.charge) {
             const charge = resultado.charge;
             console.log('✅ Pagamento criado com sucesso!');
-            console.log('📱 Link:', charge.paymentLinkUrl);
+            console.log('🔲 QR Code URL:', charge.qrCodeImage);
             console.log('🔲 QR Code:', charge.qrCodeImage);
             console.log('📋 BR Code:', charge.brCode);
             return charge;
