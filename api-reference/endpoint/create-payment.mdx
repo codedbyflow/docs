@@ -75,25 +75,28 @@ Cria um novo pagamento PIX dinâmico usando a Woovi.
 
 ## Try It
 
-<RequestExample url="https://www.flowapplications.com.br/api/v1/payment/create" method="POST" auth="bearer" authParam="seu_token_aqui">
+<RequestExample>
 
-```json
-{
-  "correlationID": "pedido-123",
-  "value": 10.50,
-  "comment": "Pagamento do pedido #123",
-  "expiresIn": 3600,
-  "expiresDate": "2024-12-31T23:59:59Z",
-  "customer": {
-    "name": "João Silva",
-    "email": "joao@example.com",
-    "phone": "+5511999999999",
-    "taxID": {
-      "taxID": "12345678900",
-      "type": "BR:CPF"
+```bash POST /payment/create
+curl -X POST https://www.flowapplications.com.br/api/v1/payment/create \
+  -H "Authorization: Bearer seu_token_aqui" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "correlationID": "pedido-123",
+    "value": 10.50,
+    "comment": "Pagamento do pedido #123",
+    "expiresIn": 3600,
+    "expiresDate": "2024-12-31T23:59:59Z",
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@example.com",
+      "phone": "+5511999999999",
+      "taxID": {
+        "taxID": "12345678900",
+        "type": "BR:CPF"
+      }
     }
-  }
-}
+  }'
 ```
 
 </RequestExample>

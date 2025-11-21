@@ -30,11 +30,11 @@ Verifica o status atual de um pagamento pelo `correlationID`.
 
 ## Try It
 
-<RequestExample url="https://www.flowapplications.com.br/api/v1/payment/verify/{correlationID}" method="GET" auth="bearer" authParam="seu_token_aqui" pathParams={{"correlationID":"pedido-123"}}>
+<RequestExample>
 
-```bash
-GET /payment/verify/pedido-123
-Authorization: Bearer seu_token_aqui
+```bash GET /payment/verify/{correlationID}
+curl -X GET https://www.flowapplications.com.br/api/v1/payment/verify/pedido-123 \
+  -H "Authorization: Bearer seu_token_aqui"
 ```
 
 </RequestExample>
