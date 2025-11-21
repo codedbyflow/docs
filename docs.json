@@ -8,22 +8,29 @@
     "dark": "#003080"
   },
   "favicon": "/favicon.svg",
-  "navigation": [
-    {
-      "group": "Início",
-      "pages": [
-        "index",
-        "api-reference/introduction"
-      ]
-    },
-    {
-      "group": "Endpoints",
-      "pages": [
-        "api-reference/endpoint/create-payment",
-        "api-reference/endpoint/verify-payment"
-      ]
-    }
-  ],
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentação",
+        "groups": [
+          {
+            "group": "Início",
+            "pages": [
+              "index",
+              "api-reference/introduction"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api-reference/endpoint/create-payment",
+              "api-reference/endpoint/verify-payment"
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "logo": {
     "light": "https://i.imgur.com/rm9b54K.gif",
     "dark": "https://i.imgur.com/rm9b54K.gif"
