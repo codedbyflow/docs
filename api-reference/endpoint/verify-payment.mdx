@@ -33,7 +33,7 @@ Verifica o status atual de uma charge criada anteriormente.
 <RequestExample>
 
 ```bash GET /api/flow-api/charge/{chargeId}
-curl -X GET https://seu-dominio.com/api/flow-api/charge/flow_123_1704067200000_abc123 \
+curl -X GET https://flowapplications.com.br/api/flow-api/charge/flow_123_1704067200000_abc123 \
   -H "Authorization: Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0="
 ```
 
@@ -152,7 +152,7 @@ Charge não encontrada.
 
 ```javascript
 const chargeId = 'flow_123_1704067200000_abc123'
-const response = await fetch(`https://seu-dominio.com/api/flow-api/charge/${chargeId}`, {
+const response = await fetch(`https://flowapplications.com.br/api/flow-api/charge/${chargeId}`, {
   method: 'GET',
   headers: {
     'Authorization': 'Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0='
@@ -169,7 +169,7 @@ console.log(data)
 import requests
 
 charge_id = 'flow_123_1704067200000_abc123'
-url = f'https://seu-dominio.com/api/flow-api/charge/{charge_id}'
+url = f'https://flowapplications.com.br/api/flow-api/charge/{charge_id}'
 headers = {
     'Authorization': 'Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0='
 }
@@ -184,7 +184,7 @@ print(data)
 ```javascript
 // Verificar status periodicamente (opcional)
 const checkStatus = async () => {
-  const response = await fetch(`https://seu-dominio.com/api/flow-api/charge/${chargeId}`, {
+  const response = await fetch(`https://flowapplications.com.br/api/flow-api/charge/${chargeId}`, {
     headers: {
       'Authorization': 'Bearer sua_api_key'
     }

@@ -58,7 +58,7 @@ Cria uma nova cobrança PIX e retorna o código PIX e QR Code para pagamento.
 <RequestExample>
 
 ```bash POST /api/flow-api/charge
-curl -X POST https://seu-dominio.com/api/flow-api/charge \
+curl -X POST https://flowapplications.com.br/api/flow-api/charge \
   -H "Authorization: Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0=" \
   -H "Content-Type: application/json" \
   -d '{
@@ -94,7 +94,7 @@ curl -X POST https://seu-dominio.com/api/flow-api/charge \
       "emv": "00020126580014br.gov.bcb.pix...",
       "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
     },
-    "publicPaymentUrl": "http://localhost:3000/pagamento-publico/flow_123_1704067200000_abc123",
+    "publicPaymentUrl": "https://flowapplications.com.br/pagamento-publico/flow_123_1704067200000_abc123",
     "expiresAt": "2024-01-01T12:00:00.000Z",
     "createdAt": "2024-01-01T11:00:00.000Z"
   },
@@ -187,7 +187,7 @@ Erro interno do servidor ou erro na comunicação com a Woovi.
 ### JavaScript (Fetch)
 
 ```javascript
-const response = await fetch('https://seu-dominio.com/api/flow-api/charge', {
+const response = await fetch('https://flowapplications.com.br/api/flow-api/charge', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0=',
@@ -214,7 +214,7 @@ console.log(data)
 ```python
 import requests
 
-url = 'https://seu-dominio.com/api/flow-api/charge'
+url = 'https://flowapplications.com.br/api/flow-api/charge'
 headers = {
     'Authorization': 'Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0=',
     'Content-Type': 'application/json'
@@ -245,7 +245,7 @@ app.post('/criar-pagamento', async (req, res) => {
   try {
     const { valor, descricao } = req.body
     
-    const response = await fetch('https://seu-dominio.com/api/flow-api/charge', {
+    const response = await fetch('https://flowapplications.com.br/api/flow-api/charge', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.FLOW_API_KEY}`,
@@ -276,7 +276,7 @@ app.post('/criar-pagamento', async (req, res) => {
 
 ```javascript
 // Criar charge
-const createResponse = await fetch('https://seu-dominio.com/api/flow-api/charge', {
+const createResponse = await fetch('https://flowapplications.com.br/api/flow-api/charge', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer sua_api_key',
@@ -316,3 +316,106 @@ window.location.href = publicPaymentUrl
 ### 3. Processamento Automático
 
 O pagamento será processado automaticamente quando confirmado. O saldo será adicionado à carteira do usuário associado à API key.
+
+## Teste Rápido
+
+### Exemplo de Teste com cURL
+
+```bash
+curl -X POST https://flowapplications.com.br/api/flow-api/charge \
+  -H "Authorization: Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0=" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "value": 1.00,
+    "description": "Teste de pagamento",
+    "expiresIn": 3600
+  }'
+```
+
+### Exemplo de Teste com JavaScript (Node.js)
+
+```javascript
+// teste-pagamento.js
+const fetch = require('node-fetch');
+
+async function testarCriarPagamento() {
+  try {
+    const response = await fetch('https://flowapplications.com.br/api/flow-api/charge', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0=',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        value: 1.00,
+        description: 'Teste de pagamento',
+        expiresIn: 3600
+      })
+    });
+
+    const data = await response.json();
+    
+    if (response.ok) {
+      console.log('✅ Pagamento criado com sucesso!');
+      console.log('ID da Charge:', data.charge.id);
+      console.log('QR Code (base64):', data.charge.qrCode.image.substring(0, 50) + '...');
+      console.log('Link Público:', data.charge.publicPaymentUrl);
+      return data;
+    } else {
+      console.error('❌ Erro:', data.error);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Erro na requisição:', error.message);
+    return null;
+  }
+}
+
+// Executar teste
+testarCriarPagamento();
+```
+
+### Exemplo de Teste com Python
+
+```python
+# teste_pagamento.py
+import requests
+import json
+
+def testar_criar_pagamento():
+    url = 'https://flowapplications.com.br/api/flow-api/charge'
+    headers = {
+        'Authorization': 'Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0=',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'value': 1.00,
+        'description': 'Teste de pagamento',
+        'expiresIn': 3600
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        data = response.json()
+        
+        if response.status_code == 200:
+            print('✅ Pagamento criado com sucesso!')
+            print(f'ID da Charge: {data["charge"]["id"]}')
+            print(f'QR Code (base64): {data["charge"]["qrCode"]["image"][:50]}...')
+            print(f'Link Público: {data["charge"]["publicPaymentUrl"]}')
+            return data
+        else:
+            print(f'❌ Erro: {data.get("error", "Erro desconhecido")}')
+            return None
+    except Exception as e:
+        print(f'❌ Erro na requisição: {str(e)}')
+        return None
+
+# Executar teste
+if __name__ == '__main__':
+    testar_criar_pagamento()
+```
+
+<Note>
+  Lembre-se de substituir `flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0=` pela sua API Key real obtida no painel da Flow.
+</Note>

@@ -33,7 +33,7 @@ composer require guzzlehttp/guzzle
 namespace FlowPay;
 
 class FlowPayAPI {
-    private const BASE_URL = 'https://seu-dominio.com';
+    private const BASE_URL = 'https://flowapplications.com.br';
     private $apiKey;
     private $httpClient;
     
@@ -88,7 +88,7 @@ class FlowPayAPI {
 <?php
 // FlowPayAPICurl.php
 class FlowPayAPICurl {
-    private const BASE_URL = 'https://seu-dominio.com';
+    private const BASE_URL = 'https://flowapplications.com.br';
     private $apiKey;
     
     public function __construct(?string $apiToken = null) {
@@ -167,7 +167,7 @@ class FlowPayAPICurl {
     "chargeId": "pedido-123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCode.image": "https://seu-dominio.com/payment/qrcode/pedido-123",
+    "qrCode.image": "https://flowapplications.com.br/payment/qrcode/pedido-123",
     "pixCode": "00020126580014br.gov.bcb.pix...",
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": null,
@@ -192,7 +192,7 @@ class FlowPayAPICurl {
     "chargeId": "pedido-123",
     "value": 10.50,
     "status": "COMPLETED",
-    "qrCode.image": "https://seu-dominio.com/payment/qrcode/pedido-123",
+    "qrCode.image": "https://flowapplications.com.br/payment/qrcode/pedido-123",
     "pixCode": "00020126580014br.gov.bcb.pix...",
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": "E1234567820240101120000",
@@ -265,7 +265,7 @@ use GuzzleHttp\Client;
 
 class FlowPayService {
     private $client;
-    private $baseUrl = 'https://seu-dominio.com';
+    private $baseUrl = 'https://flowapplications.com.br';
     private $apiToken;
     
     public function __construct() {
@@ -384,7 +384,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class FlowPayService {
     private $httpClient;
-    private $baseUrl = 'https://seu-dominio.com';
+    private $baseUrl = 'https://flowapplications.com.br';
     private $apiToken;
     
     public function __construct(HttpClientInterface $httpClient, string $apiToken) {
