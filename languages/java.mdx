@@ -1,12 +1,12 @@
 ---
 title: 'Java'
-description: 'Implementação completa da API FlowPay em Java com exemplos práticos'
+description: 'Implementação completa da Flow API em Java com exemplos práticos'
 icon: 'java'
 ---
 
 ## Implementação Java
 
-Guia completo para integrar a API FlowPay em suas aplicações Java usando HttpClient ou bibliotecas HTTP modernas.
+Guia completo para integrar a Flow API em suas aplicações Java usando HttpClient ou bibliotecas HTTP modernas.
 
 <Card
   title="Repositório de exemplo"
@@ -60,15 +60,15 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 public class FlowPayAPI {
-    private static final String BASE_URL = "https://www.flowapplications.com.br/api/v1";
-    private final String apiToken;
+    private static final String BASE_URL = "https://seu-dominio.com";
+    private final String apiKey;
     private final HttpClient httpClient;
     private final Gson gson;
     
     public FlowPayAPI(String apiToken) {
-        this.apiToken = apiToken != null ? apiToken : System.getenv("FLOWPAY_API_TOKEN");
-        if (this.apiToken == null || this.apiToken.isEmpty()) {
-            throw new IllegalArgumentException("Token de API não fornecido");
+        this.apiKey = apiToken != null ? apiToken : System.getenv("FLOW_API_KEY");
+        if (this.apiKey == null || this.apiKey.isEmpty()) {
+            throw new IllegalArgumentException("API Key não fornecida");
         }
         
         this.httpClient = HttpClient.newBuilder()
@@ -82,7 +82,7 @@ public class FlowPayAPI {
         
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
             .uri(URI.create(url))
-            .header("Authorization", "Bearer " + apiToken)
+            .header("Authorization", "Bearer " + apiKey)
             .header("Content-Type", "application/json")
             .timeout(Duration.ofSeconds(30));
         
@@ -107,7 +107,7 @@ public class FlowPayAPI {
     
     public PaymentResponse createPayment(CreatePaymentRequest request) throws Exception {
         JsonObject body = new JsonObject();
-        body.addProperty("correlationID", request.getCorrelationID());
+        body.addProperty("chargeId", request.getCorrelationID());
         body.addProperty("value", request.getValue());
         
         if (request.getComment() != null) {
@@ -123,12 +123,12 @@ public class FlowPayAPI {
             body.add("customer", gson.toJsonTree(request.getCustomer()));
         }
         
-        JsonObject response = makeRequest("POST", "/payment/create", body);
+        JsonObject response = makeRequest("POST", "/api/flow-api/charge", body);
         return gson.fromJson(response, PaymentResponse.class);
     }
     
-    public PaymentResponse verifyPayment(String correlationID) throws Exception {
-        JsonObject response = makeRequest("GET", "/payment/verify/" + correlationID, null);
+    public PaymentResponse verifyPayment(String chargeId) throws Exception {
+        JsonObject response = makeRequest("GET", "/api/flow-api/charge/" + chargeId, null);
         return gson.fromJson(response, PaymentResponse.class);
     }
 }
@@ -145,15 +145,15 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class FlowPayAPI {
-    private static final String BASE_URL = "https://www.flowapplications.com.br/api/v1";
-    private final String apiToken;
+    private static final String BASE_URL = "https://seu-dominio.com";
+    private final String apiKey;
     private final OkHttpClient httpClient;
     private final Gson gson;
     
     public FlowPayAPI(String apiToken) {
-        this.apiToken = apiToken != null ? apiToken : System.getenv("FLOWPAY_API_TOKEN");
-        if (this.apiToken == null || this.apiToken.isEmpty()) {
-            throw new IllegalArgumentException("Token de API não fornecido");
+        this.apiKey = apiToken != null ? apiToken : System.getenv("FLOW_API_KEY");
+        if (this.apiKey == null || this.apiKey.isEmpty()) {
+            throw new IllegalArgumentException("API Key não fornecida");
         }
         
         this.httpClient = new OkHttpClient.Builder()
@@ -200,19 +200,19 @@ public class FlowPayAPI {
     
     public PaymentResponse createPayment(CreatePaymentRequest request) throws Exception {
         JsonObject body = new JsonObject();
-        body.addProperty("correlationID", request.getCorrelationID());
+        body.addProperty("chargeId", request.getCorrelationID());
         body.addProperty("value", request.getValue());
         
         if (request.getComment() != null) {
             body.addProperty("comment", request.getComment());
         }
         
-        JsonObject response = makeRequest("POST", "/payment/create", body);
+        JsonObject response = makeRequest("POST", "/api/flow-api/charge", body);
         return gson.fromJson(response, PaymentResponse.class);
     }
     
-    public PaymentResponse verifyPayment(String correlationID) throws Exception {
-        JsonObject response = makeRequest("GET", "/payment/verify/" + correlationID, null);
+    public PaymentResponse verifyPayment(String chargeId) throws Exception {
+        JsonObject response = makeRequest("GET", "/api/flow-api/charge/" + chargeId, null);
         return gson.fromJson(response, PaymentResponse.class);
     }
 }
@@ -227,7 +227,7 @@ public class FlowPayAPI {
 package com.flowpay;
 
 public class CreatePaymentRequest {
-    private String correlationID;
+    private String chargeId;
     private Double value;
     private String comment;
     private Integer expiresIn;
@@ -235,8 +235,8 @@ public class CreatePaymentRequest {
     private Customer customer;
     
     // Getters e Setters
-    public String getCorrelationID() { return correlationID; }
-    public void setCorrelationID(String correlationID) { this.correlationID = correlationID; }
+    public String getCorrelationID() { return chargeId; }
+    public void setCorrelationID(String chargeId) { this.chargeId = chargeId; }
     
     public Double getValue() { return value; }
     public void setValue(Double value) { this.value = value; }
@@ -258,7 +258,7 @@ public class CreatePaymentRequest {
 package com.flowpay;
 
 public class PaymentCharge {
-    private String correlationID;
+    private String chargeId;
     private Double value;
     private String status;
     private String qrCodeImage;
@@ -304,7 +304,7 @@ public class PaymentResponse {
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "chargeId": "pedido-123",
     "value": 10.50,
     "status": "ACTIVE",
     "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
@@ -329,7 +329,7 @@ public class PaymentResponse {
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "chargeId": "pedido-123",
     "value": 10.50,
     "status": "COMPLETED",
     "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
@@ -353,7 +353,7 @@ public class PaymentResponse {
 ```json
 {
   "success": false,
-  "error": "correlationID e value são obrigatórios"
+  "error": "chargeId e value são obrigatórios"
 }
 ```
 
@@ -423,9 +423,9 @@ public class PaymentService {
         }
     }
     
-    public PaymentResponse verifyPayment(String correlationID) {
+    public PaymentResponse verifyPayment(String chargeId) {
         try {
-            return api.verifyPayment(correlationID);
+            return api.verifyPayment(chargeId);
         } catch (Exception e) {
             throw new RuntimeException("Erro ao verificar pagamento: " + e.getMessage(), e);
         }
@@ -460,7 +460,7 @@ public class PaymentController {
                 return ResponseEntity.ok(Map.of(
                     "success", true,
                     "pagamento", Map.of(
-                        "correlationID", response.getCharge().getCorrelationID(),
+                        "chargeId", response.getCharge().getCorrelationID(),
                         "qrCode", response.getCharge().getQrCodeImage(),
                         "brCode", response.getCharge().getBrCode(),
                         "qrCode", response.getCharge().getQrCodeImage()
@@ -480,10 +480,10 @@ public class PaymentController {
         }
     }
     
-    @GetMapping("/verify/{correlationID}")
-    public ResponseEntity<?> verifyPayment(@PathVariable String correlationID) {
+    @GetMapping("/verify/{chargeId}")
+    public ResponseEntity<?> verifyPayment(@PathVariable String chargeId) {
         try {
-            PaymentResponse response = paymentService.verifyPayment(correlationID);
+            PaymentResponse response = paymentService.verifyPayment(chargeId);
             
             if (response.getSuccess()) {
                 return ResponseEntity.ok(response);
@@ -551,12 +551,12 @@ package com.flowpay;
 import java.util.concurrent.TimeUnit;
 
 public class Polling {
-    public static PaymentCharge aguardarPagamento(FlowPayAPI api, String correlationID, int intervalo, int timeout) throws Exception {
+    public static PaymentCharge aguardarPagamento(FlowPayAPI api, String chargeId, int intervalo, int timeout) throws Exception {
         long inicio = System.currentTimeMillis();
         
         while (System.currentTimeMillis() - inicio < timeout * 1000) {
             try {
-                PaymentResponse response = api.verifyPayment(correlationID);
+                PaymentResponse response = api.verifyPayment(chargeId);
                 
                 if (response.getSuccess() && response.getCharge() != null) {
                     PaymentCharge charge = response.getCharge();
@@ -631,8 +631,8 @@ public class EcommercePagamento {
     }
     
     public Map<String, Object> verificarPagamentoPedido(String pedidoID) throws Exception {
-        String correlationID = "pedido-" + pedidoID;
-        PaymentResponse response = api.verifyPayment(correlationID);
+        String chargeId = "pedido-" + pedidoID;
+        PaymentResponse response = api.verifyPayment(chargeId);
         
         if (response.getSuccess() && response.getCharge() != null) {
             PaymentCharge charge = response.getCharge();
@@ -655,13 +655,13 @@ public class EcommercePagamento {
 ## Configuração (application.properties - Spring Boot)
 
 ```properties
-flowpay.api.token=${FLOWPAY_API_TOKEN}
+flowpay.api.token=${FLOW_API_KEY}
 ```
 
 ## Variáveis de Ambiente
 
 ```bash
-export FLOWPAY_API_TOKEN=seu_token_aqui
+export FLOW_API_KEY=seu_token_aqui
 ```
 
 <Note>

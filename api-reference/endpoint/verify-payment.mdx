@@ -1,6 +1,6 @@
 ---
 title: 'Verificar Status do Pagamento'
-description: 'Verifica o status atual de um pagamento pelo correlationID'
+description: 'Verifica o status atual de uma charge criada anteriormente'
 icon: "check-circle"
 ---
 
@@ -9,12 +9,12 @@ icon: "check-circle"
 <CodeGroup>
 
 ```http
-GET /payment/verify/{correlationID}
+GET /api/flow-api/charge/{chargeId}
 ```
 
 </CodeGroup>
 
-Verifica o status atual de um pagamento pelo `correlationID`.
+Verifica o status atual de uma charge criada anteriormente.
 
 ## Headers
 
@@ -24,17 +24,17 @@ Verifica o status atual de um pagamento pelo `correlationID`.
 
 ## Path Parameters
 
-<ParamField path="correlationID" type="string" required>
-  ID único do pagamento usado na criação
+<ParamField path="chargeId" type="string" required>
+  ID da charge retornado ao criar o pagamento (campo `charge.id`)
 </ParamField>
 
 ## Try It
 
 <RequestExample>
 
-```bash GET /payment/verify/{correlationID}
-curl -X GET https://www.flowapplications.com.br/api/v1/payment/verify/pedido-123 \
-  -H "Authorization: Bearer seu_token_aqui"
+```bash GET /api/flow-api/charge/{chargeId}
+curl -X GET https://seu-dominio.com/api/flow-api/charge/flow_123_1704067200000_abc123 \
+  -H "Authorization: Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0="
 ```
 
 </RequestExample>
@@ -49,57 +49,70 @@ curl -X GET https://www.flowapplications.com.br/api/v1/payment/verify/pedido-123
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
-    "value": 10.50,
-    "status": "COMPLETED",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionID": "E1234567820240101120000",
-    "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:05:30Z"
+    "id": "woovi_charge_id_123",
+    "correlationID": "flow_123_1704067200000_abc123",
+    "status": "PAID",
+    "value": 100,
+    "paymentMethods": {
+      "pix": {
+        "status": "PAID",
+        "brCode": "00020126580014br.gov.bcb.pix...",
+        "transactionID": "pix_transaction_123"
+      }
+    },
+    "createdAt": "2024-01-01T11:00:00.000Z",
+    "updatedAt": "2024-01-01T11:05:00.000Z",
+    "expiresAt": "2024-01-01T12:00:00.000Z"
   }
 }
 ```
 
 </ResponseExample>
 
-## Status do Pagamento
+## Status Possíveis
 
-O campo `status` pode ter os seguintes valores:
+| Status | Descrição |
+|--------|-----------|
+| `ACTIVE` | Charge criada e aguardando pagamento |
+| `PAID` | Pagamento confirmado |
+| `CONFIRMED` | Pagamento confirmado (sinônimo de PAID) |
+| `COMPLETED` | Pagamento completado (sinônimo de PAID) |
+| `EXPIRED` | Charge expirada (não é mais possível pagar) |
+| `CANCELLED` | Charge cancelada |
 
-- **ACTIVE**: Pagamento pendente, aguardando pagamento
-- **COMPLETED**: Pagamento confirmado e concluído
-- **EXPIRED**: Pagamento expirado, não pode mais ser pago
+## Verificando se o Pagamento foi Confirmado
 
-## Campos da Resposta
+```javascript
+const charge = data.charge
+const status = charge.status || charge.paymentStatus
+const pixStatus = charge.paymentMethods?.pix?.status || charge.pix?.status
 
-- **correlationID**: ID único do pagamento
-- **value**: Valor do pagamento em reais
-- **status**: Status atual do pagamento
-- **qrCodeImage**: URL da imagem PNG do QR code
-- **brCode**: Código PIX copia e cola (EMV)
-- **globalID**: ID global da cobrança na Woovi
-- **transactionID**: ID da transação (preenchido quando o pagamento for confirmado)
-- **expiresIn**: Tempo de expiração em segundos
-- **expiresDate**: Data e hora de expiração
-- **createdAt**: Data e hora de criação
-- **updatedAt**: Data e hora da última atualização
+const isPaid = 
+  status === 'CONFIRMED' || 
+  status === 'PAID' || 
+  status === 'COMPLETED' || 
+  pixStatus === 'PAID' || 
+  pixStatus === 'CONFIRMED' || 
+  pixStatus === 'COMPLETED'
+
+if (isPaid) {
+  console.log('✅ Pagamento confirmado!')
+} else {
+  console.log('⏳ Aguardando pagamento...')
+}
+```
 
 ## Erros
 
 ### 400 Bad Request - Erro
 
-`correlationID` não fornecido.
+ID da charge não fornecido.
 
 <ResponseExample>
 
 ```json
 {
-  "success": false,
-  "error": "correlationID é obrigatório"
+  "error": "ID da charge é obrigatório"
 }
 ```
 
@@ -107,14 +120,13 @@ O campo `status` pode ter os seguintes valores:
 
 ### 401 Unauthorized - Erro
 
-Token inválido ou não fornecido.
+API key inválida ou não fornecida.
 
 <ResponseExample>
 
 ```json
 {
-  "success": false,
-  "error": "Token de API inválido ou não fornecido"
+  "error": "API key inválida ou inativa"
 }
 ```
 
@@ -122,29 +134,13 @@ Token inválido ou não fornecido.
 
 ### 404 Not Found - Erro
 
-Pagamento não encontrado ou não pertence ao usuário autenticado.
+Charge não encontrada.
 
 <ResponseExample>
 
 ```json
 {
-  "success": false,
-  "error": "Pagamento não encontrado"
-}
-```
-
-</ResponseExample>
-
-### 500 Internal Server Error - Erro
-
-Erro interno do servidor ou configuração da Woovi não encontrada.
-
-<ResponseExample>
-
-```json
-{
-  "success": false,
-  "error": "Erro interno do servidor"
+  "error": "Charge não encontrada"
 }
 ```
 
@@ -152,108 +148,62 @@ Erro interno do servidor ou configuração da Woovi não encontrada.
 
 ## Exemplos de Código
 
-### JavaScript/Node.js
+### JavaScript (Fetch)
 
 ```javascript
-const API_TOKEN = 'seu_token_aqui';
-const API_BASE_URL = 'https://www.flowapplications.com.br/api/v1';
-
-async function verificarPagamento(correlationID) {
-  const response = await fetch(`${API_BASE_URL}/payment/verify/${correlationID}`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${API_TOKEN}`,
-    },
-  });
-  
-  const data = await response.json();
-  
-  if (data.success) {
-    console.log('Status:', data.charge.status);
-    console.log('Valor:', data.charge.value);
-    if (data.charge.status === 'COMPLETED') {
-      console.log('Transaction ID:', data.charge.transactionID);
-    }
-  } else {
-    console.error('Erro:', data.error);
+const chargeId = 'flow_123_1704067200000_abc123'
+const response = await fetch(`https://seu-dominio.com/api/flow-api/charge/${chargeId}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0='
   }
-}
+})
 
-// Exemplo de uso
-verificarPagamento('test-1234567890');
+const data = await response.json()
+console.log(data)
 ```
 
-### Python
+### Python (requests)
 
 ```python
 import requests
 
-API_TOKEN = 'seu_token_aqui'
-API_BASE_URL = 'https://www.flowapplications.com.br/api/v1'
-
-def verificar_pagamento(correlation_id):
-    headers = {
-        'Authorization': f'Bearer {API_TOKEN}',
-    }
-    
-    response = requests.get(
-        f'{API_BASE_URL}/payment/verify/{correlation_id}',
-        headers=headers
-    )
-    
-    data = response.json()
-    
-    if data.get('success'):
-        print('Status:', data['charge']['status'])
-        print('Valor:', data['charge']['value'])
-        if data['charge']['status'] == 'COMPLETED':
-            print('Transaction ID:', data['charge']['transactionID'])
-    else:
-        print('Erro:', data.get('error'))
-
-# Exemplo de uso
-verificar_pagamento('test-1234567890')
-```
-
-### cURL
-
-```bash
-curl -X GET https://www.flowapplications.com.br/api/v1/payment/verify/pagamento-1234567890 \
-  -H "Authorization: Bearer seu_token_aqui"
-```
-
-### PHP
-
-```php
-<?php
-$apiToken = 'seu_token_aqui';
-$apiBaseUrl = 'https://www.flowapplications.com.br/api/v1';
-
-function verificarPagamento($correlationID) {
-    global $apiToken, $apiBaseUrl;
-    
-    $ch = curl_init($apiBaseUrl . '/payment/verify/' . $correlationID);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $apiToken,
-    ]);
-    
-    $response = curl_exec($ch);
-    curl_close($ch);
-    
-    $result = json_decode($response, true);
-    
-    if ($result['success']) {
-        echo "Status: " . $result['charge']['status'] . "\n";
-        echo "Valor: " . $result['charge']['value'] . "\n";
-        if ($result['charge']['status'] === 'COMPLETED') {
-            echo "Transaction ID: " . $result['charge']['transactionID'] . "\n";
-        }
-    } else {
-        echo "Erro: " . $result['error'] . "\n";
-    }
+charge_id = 'flow_123_1704067200000_abc123'
+url = f'https://seu-dominio.com/api/flow-api/charge/{charge_id}'
+headers = {
+    'Authorization': 'Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0='
 }
 
-verificarPagamento('test-1234567890');
-?>
+response = requests.get(url, headers=headers)
+data = response.json()
+print(data)
 ```
+
+### Verificação Periódica (Opcional)
+
+```javascript
+// Verificar status periodicamente (opcional)
+const checkStatus = async () => {
+  const response = await fetch(`https://seu-dominio.com/api/flow-api/charge/${chargeId}`, {
+    headers: {
+      'Authorization': 'Bearer sua_api_key'
+    }
+  })
+  
+  const { charge } = await response.json()
+  const isPaid = charge.status === 'PAID' || charge.status === 'CONFIRMED'
+  
+  if (isPaid) {
+    console.log('✅ Pagamento confirmado!')
+    // Atualizar interface, enviar email, etc.
+  }
+}
+
+// Verificar a cada 5 segundos (opcional)
+// Nota: O pagamento será processado automaticamente mesmo sem verificação manual
+setInterval(checkStatus, 5000)
+```
+
+<Note>
+  O pagamento será processado automaticamente quando confirmado. Não é necessário fazer polling manual se você não precisar de atualizações em tempo real.
+</Note>

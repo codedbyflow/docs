@@ -1,12 +1,12 @@
 ---
 title: 'Python'
-description: 'Implementação completa da API FlowPay em Python com exemplos práticos'
+description: 'Implementação completa da Flow API em Python com exemplos práticos'
 icon: 'python'
 ---
 
 ## Implementação Python
 
-Guia completo para integrar a API FlowPay em suas aplicações Python usando requests ou httpx.
+Guia completo para integrar a Flow API em suas aplicações Python usando requests ou httpx.
 
 <Card
   title="Repositório de exemplo"
@@ -37,10 +37,10 @@ import os
 from typing import Optional, Dict, Any
 
 class FlowPayAPI:
-    BASE_URL = "https://www.flowapplications.com.br/api/v1"
+    BASE_URL = "https://seu-dominio.com"
     
     def __init__(self, api_token: Optional[str] = None):
-        self.api_token = api_token or os.getenv("FLOWPAY_API_TOKEN")
+        self.api_token = api_token or os.getenv("FLOW_API_KEY")
         if not self.api_token:
             raise ValueError("Token de API não fornecido")
         
@@ -69,18 +69,17 @@ class FlowPayAPI:
         except requests.exceptions.RequestException as e:
             raise Exception(f"Erro de conexão: {str(e)}")
     
-    def create_payment(self, correlation_id: str, value: float, **kwargs) -> Dict[Any, Any]:
+    def create_payment(self, value: float, **kwargs) -> Dict[Any, Any]:
         """Cria um novo pagamento PIX"""
         data = {
-            "correlationID": correlation_id,
             "value": value,
             **kwargs
         }
-        return self._make_request("POST", "/payment/create", json=data)
+        return self._make_request("POST", "/api/flow-api/charge", json=data)
     
-    def verify_payment(self, correlation_id: str) -> Dict[Any, Any]:
+    def verify_payment(self, charge_id: str) -> Dict[Any, Any]:
         """Verifica o status de um pagamento"""
-        return self._make_request("GET", f"/payment/verify/{correlation_id}")
+        return self._make_request("GET", f"/api/flow-api/charge/{charge_id}")
 
 # Uso
 if __name__ == "__main__":
@@ -95,10 +94,10 @@ import os
 from typing import Optional, Dict, Any
 
 class FlowPayAPIAsync:
-    BASE_URL = "https://www.flowapplications.com.br/api/v1"
+    BASE_URL = "https://seu-dominio.com"
     
     def __init__(self, api_token: Optional[str] = None):
-        self.api_token = api_token or os.getenv("FLOWPAY_API_TOKEN")
+        self.api_token = api_token or os.getenv("FLOW_API_KEY")
         if not self.api_token:
             raise ValueError("Token de API não fornecido")
         
@@ -124,18 +123,17 @@ class FlowPayAPIAsync:
         except httpx.RequestError as e:
             raise Exception(f"Erro de conexão: {str(e)}")
     
-    async def create_payment(self, correlation_id: str, value: float, **kwargs) -> Dict[Any, Any]:
+    async def create_payment(self, value: float, **kwargs) -> Dict[Any, Any]:
         """Cria um novo pagamento PIX"""
         data = {
-            "correlationID": correlation_id,
             "value": value,
             **kwargs
         }
-        return await self._make_request("POST", "/payment/create", json=data)
+        return await self._make_request("POST", "/api/flow-api/charge", json=data)
     
-    async def verify_payment(self, correlation_id: str) -> Dict[Any, Any]:
+    async def verify_payment(self, charge_id: str) -> Dict[Any, Any]:
         """Verifica o status de um pagamento"""
-        return await self._make_request("GET", f"/payment/verify/{correlation_id}")
+        return await self._make_request("GET", f"/api/flow-api/charge/{charge_id}")
     
     async def close(self):
         """Fecha o cliente HTTP"""
@@ -145,7 +143,7 @@ class FlowPayAPIAsync:
 async def main():
     api = FlowPayAPIAsync()
     try:
-        resultado = await api.create_payment("pedido-123", 10.50)
+        resultado = await api.create_payment(10.50, description="Pagamento de teste")
         print(resultado)
     finally:
         await api.close()
@@ -274,7 +272,7 @@ from flowpay import FlowPayAPI
 import os
 
 app = Flask(__name__)
-api = FlowPayAPI(os.getenv("FLOWPAY_API_TOKEN"))
+api = FlowPayAPI(os.getenv("FLOW_API_KEY"))
 
 @app.route("/pagamentos/criar", methods=["POST"])
 def criar_pagamento():
@@ -352,7 +350,7 @@ import json
 from flowpay import FlowPayAPI
 import os
 
-api = FlowPayAPI(os.getenv("FLOWPAY_API_TOKEN"))
+api = FlowPayAPI(os.getenv("FLOW_API_KEY"))
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -517,7 +515,7 @@ import os
 
 class EcommercePagamento:
     def __init__(self):
-        self.api = FlowPayAPI(os.getenv("FLOWPAY_API_TOKEN"))
+        self.api = FlowPayAPI(os.getenv("FLOW_API_KEY"))
     
     def criar_pagamento_pedido(self, pedido_id: str, valor: float, cliente: Optional[Dict] = None):
         """Cria pagamento PIX para um pedido"""
@@ -643,7 +641,7 @@ def criar_pagamento_seguro(correlation_id: str, valor: float, **kwargs) -> Dict[
 Crie um arquivo `.env`:
 
 ```bash
-FLOWPAY_API_TOKEN=seu_token_aqui
+FLOW_API_KEY=seu_token_aqui
 ```
 
 E use com `python-dotenv`:
@@ -654,7 +652,7 @@ import os
 
 load_dotenv()
 
-API_TOKEN = os.getenv("FLOWPAY_API_TOKEN")
+API_TOKEN = os.getenv("FLOW_API_KEY")
 ```
 
 <Note>

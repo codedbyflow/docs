@@ -1,12 +1,12 @@
 ---
 title: 'PHP'
-description: 'Implementação completa da API FlowPay em PHP com exemplos práticos'
+description: 'Implementação completa da Flow API em PHP com exemplos práticos'
 icon: 'php'
 ---
 
 ## Implementação PHP
 
-Guia completo para integrar a API FlowPay em suas aplicações PHP usando cURL ou Guzzle.
+Guia completo para integrar a Flow API em suas aplicações PHP usando cURL ou Guzzle.
 
 <Card
   title="Repositório de exemplo"
@@ -33,22 +33,22 @@ composer require guzzlehttp/guzzle
 namespace FlowPay;
 
 class FlowPayAPI {
-    private const BASE_URL = 'https://www.flowapplications.com.br/api/v1';
-    private $apiToken;
+    private const BASE_URL = 'https://seu-dominio.com';
+    private $apiKey;
     private $httpClient;
     
     public function __construct(?string $apiToken = null) {
-        $this->apiToken = $apiToken ?? $_ENV['FLOWPAY_API_TOKEN'] ?? getenv('FLOWPAY_API_TOKEN');
+        $this->apiKey = $apiToken ?? $_ENV['FLOW_API_KEY'] ?? getenv('FLOW_API_KEY');
         
-        if (empty($this->apiToken)) {
-            throw new \Exception('Token de API não fornecido');
+        if (empty($this->apiKey)) {
+            throw new \Exception('API Key não fornecida');
         }
         
         $this->httpClient = new \GuzzleHttp\Client([
             'base_uri' => self::BASE_URL,
             'timeout' => 30,
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiToken,
+                'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
             ],
         ]);
@@ -75,11 +75,11 @@ class FlowPayAPI {
     }
     
     public function createPayment(array $data): array {
-        return $this->makeRequest('POST', '/payment/create', $data);
+        return $this->makeRequest('POST', '/api/flow-api/charge', $data);
     }
     
-    public function verifyPayment(string $correlationID): array {
-        return $this->makeRequest('GET', "/payment/verify/{$correlationID}");
+    public function verifyPayment(string $chargeId): array {
+        return $this->makeRequest('GET', "/api/flow-api/charge/{$chargeId}");
     }
 }
 ```
@@ -88,11 +88,11 @@ class FlowPayAPI {
 <?php
 // FlowPayAPICurl.php
 class FlowPayAPICurl {
-    private const BASE_URL = 'https://www.flowapplications.com.br/api/v1';
-    private $apiToken;
+    private const BASE_URL = 'https://seu-dominio.com';
+    private $apiKey;
     
     public function __construct(?string $apiToken = null) {
-        $this->apiToken = $apiToken ?? $_ENV['FLOWPAY_API_TOKEN'] ?? getenv('FLOWPAY_API_TOKEN');
+        $this->apiToken = $apiToken ?? $_ENV['FLOW_API_KEY'] ?? getenv('FLOW_API_KEY');
         
         if (empty($this->apiToken)) {
             throw new Exception('Token de API não fornecido');
@@ -143,11 +143,11 @@ class FlowPayAPICurl {
     }
     
     public function createPayment(array $data): array {
-        return $this->makeRequest('POST', '/payment/create', $data);
+        return $this->makeRequest('POST', '/api/flow-api/charge', $data);
     }
     
-    public function verifyPayment(string $correlationID): array {
-        return $this->makeRequest('GET', "/payment/verify/{$correlationID}");
+    public function verifyPayment(string $chargeId): array {
+        return $this->makeRequest('GET', "/api/flow-api/charge/{$chargeId}");
     }
 }
 ```
@@ -164,11 +164,11 @@ class FlowPayAPICurl {
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "chargeId": "pedido-123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
+    "qrCode.image": "https://seu-dominio.com/payment/qrcode/pedido-123",
+    "pixCode": "00020126580014br.gov.bcb.pix...",
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": null,
     "expiresIn": 3600,
@@ -189,11 +189,11 @@ class FlowPayAPICurl {
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "chargeId": "pedido-123",
     "value": 10.50,
     "status": "COMPLETED",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
+    "qrCode.image": "https://seu-dominio.com/payment/qrcode/pedido-123",
+    "pixCode": "00020126580014br.gov.bcb.pix...",
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": "E1234567820240101120000",
     "expiresIn": 3600,
@@ -213,7 +213,7 @@ class FlowPayAPICurl {
 ```json
 {
   "success": false,
-  "error": "correlationID e value são obrigatórios"
+  "error": "chargeId e value são obrigatórios"
 }
 ```
 
@@ -234,7 +234,7 @@ try {
     $api = new FlowPayAPI();
     
     $data = [
-        'correlationID' => 'pedido-123',
+        'chargeId' => 'pedido-123',
         'value' => 10.50,
         'comment' => 'Pagamento do pedido #123',
         'expiresIn' => 3600,
@@ -245,9 +245,9 @@ try {
     if ($resultado['success'] && isset($resultado['charge'])) {
         $charge = $resultado['charge'];
         echo "✅ Pagamento criado com sucesso!\n";
-        echo "🔲 QR Code: {$charge['qrCodeImage']}\n";
-        echo "🔲 QR Code: {$charge['qrCodeImage']}\n";
-        echo "📋 BR Code: {$charge['brCode']}\n";
+        echo "🔲 QR Code: {$charge['qrCode.image']}\n";
+        echo "🔲 QR Code: {$charge['qrCode.image']}\n";
+        echo "📋 BR Code: {$charge['pixCode']}\n";
     } else {
         throw new Exception($resultado['error'] ?? 'Erro desconhecido');
     }
@@ -265,7 +265,7 @@ use GuzzleHttp\Client;
 
 class FlowPayService {
     private $client;
-    private $baseUrl = 'https://www.flowapplications.com.br/api/v1';
+    private $baseUrl = 'https://seu-dominio.com';
     private $apiToken;
     
     public function __construct() {
@@ -274,7 +274,7 @@ class FlowPayService {
             'base_uri' => $this->baseUrl,
             'timeout' => 30,
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiToken,
+                'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
             ],
         ]);
@@ -282,7 +282,7 @@ class FlowPayService {
     
     public function createPayment(array $data): array {
         try {
-            $response = $this->client->post('/payment/create', [
+            $response = $this->client->post('/api/flow-api/charge', [
                 'json' => $data,
             ]);
             
@@ -294,9 +294,9 @@ class FlowPayService {
         }
     }
     
-    public function verifyPayment(string $correlationID): array {
+    public function verifyPayment(string $chargeId): array {
         try {
-            $response = $this->client->get("/payment/verify/{$correlationID}");
+            $response = $this->client->get("/api/flow-api/charge/{$chargeId}");
             return json_decode($response->getBody()->getContents(), true);
         } catch (\GuzzleHttp\Exception\ClientException $e) {
             $response = $e->getResponse();
@@ -321,7 +321,7 @@ class PaymentController extends Controller {
     
     public function create(Request $request) {
         $request->validate([
-            'correlationID' => 'required|string',
+            'chargeId' => 'required|string',
             'value' => 'required|numeric|min:0.01',
         ]);
         
@@ -333,10 +333,10 @@ class PaymentController extends Controller {
                 return response()->json([
                     'success' => true,
                     'pagamento' => [
-                        'correlationID' => $charge['correlationID'],
-                        'qrCode' => $charge['qrCodeImage'],
-                        'brCode' => $charge['brCode'],
-                        'link' => $charge['qrCodeImage'],
+                        'chargeId' => $charge['chargeId'],
+                        'qrCode' => $charge['qrCode.image'],
+                        'pixCode' => $charge['pixCode'],
+                        'link' => $charge['qrCode.image'],
                     ],
                 ], 200);
             }
@@ -353,9 +353,9 @@ class PaymentController extends Controller {
         }
     }
     
-    public function verify(string $correlationID) {
+    public function verify(string $chargeId) {
         try {
-            $resultado = $this->flowpay->verifyPayment($correlationID);
+            $resultado = $this->flowpay->verifyPayment($chargeId);
             
             if ($resultado['success']) {
                 return response()->json($resultado, 200);
@@ -384,7 +384,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class FlowPayService {
     private $httpClient;
-    private $baseUrl = 'https://www.flowapplications.com.br/api/v1';
+    private $baseUrl = 'https://seu-dominio.com';
     private $apiToken;
     
     public function __construct(HttpClientInterface $httpClient, string $apiToken) {
@@ -393,7 +393,7 @@ class FlowPayService {
     }
     
     public function createPayment(array $data): array {
-        $response = $this->httpClient->request('POST', "{$this->baseUrl}/payment/create", [
+        $response = $this->httpClient->request('POST', "{$this->baseUrl}/api/flow-api/charge", [
             'headers' => [
                 'Authorization' => "Bearer {$this->apiToken}",
                 'Content-Type' => 'application/json',
@@ -404,8 +404,8 @@ class FlowPayService {
         return $response->toArray();
     }
     
-    public function verifyPayment(string $correlationID): array {
-        $response = $this->httpClient->request('GET', "{$this->baseUrl}/payment/verify/{$correlationID}", [
+    public function verifyPayment(string $chargeId): array {
+        $response = $this->httpClient->request('GET', "{$this->baseUrl}/api/flow-api/charge/{$chargeId}", [
             'headers' => [
                 'Authorization' => "Bearer {$this->apiToken}",
             ],
@@ -429,9 +429,9 @@ require_once 'FlowPayAPI.php';
 
 use FlowPay\FlowPayAPI;
 
-function verificarPagamento($api, $correlationID) {
+function verificarPagamento($api, $chargeId) {
     try {
-        $resultado = $api->verifyPayment($correlationID);
+        $resultado = $api->verifyPayment($chargeId);
         
         if ($resultado['success'] && isset($resultado['charge'])) {
             $charge = $resultado['charge'];
@@ -464,12 +464,12 @@ $status = verificarPagamento($api, 'pedido-123');
 ```php Polling
 <?php
 // polling.php
-function aguardarPagamento($api, $correlationID, $intervalo = 5, $timeout = 300) {
+function aguardarPagamento($api, $chargeId, $intervalo = 5, $timeout = 300) {
     $inicio = time();
     
     while (time() - $inicio < $timeout) {
         try {
-            $resultado = $api->verifyPayment($correlationID);
+            $resultado = $api->verifyPayment($chargeId);
             
             if ($resultado['success'] && isset($resultado['charge'])) {
                 $charge = $resultado['charge'];
@@ -519,7 +519,7 @@ class EcommercePagamento {
     
     public function criarPagamentoPedido(string $pedidoID, float $valor, ?array $cliente = null): array {
         $data = [
-            'correlationID' => "pedido-{$pedidoID}",
+            'chargeId' => "pedido-{$pedidoID}",
             'value' => $valor,
             'comment' => "Pagamento do pedido #{$pedidoID}",
             'expiresIn' => 3600,
@@ -547,10 +547,10 @@ class EcommercePagamento {
             return [
                 'success' => true,
                 'pagamento' => [
-                    'correlationID' => $charge['correlationID'],
-                    'qrCode' => $charge['qrCodeImage'],
-                    'brCode' => $charge['brCode'],
-                    'qrCode' => $charge['qrCodeImage'],
+                    'chargeId' => $charge['chargeId'],
+                    'qrCode' => $charge['qrCode.image'],
+                    'pixCode' => $charge['pixCode'],
+                    'qrCode' => $charge['qrCode.image'],
                     'expiraEm' => $charge['expiresDate'] ?? null,
                 ],
             ];
@@ -563,8 +563,8 @@ class EcommercePagamento {
     }
     
     public function verificarPagamentoPedido(string $pedidoID): array {
-        $correlationID = "pedido-{$pedidoID}";
-        $resultado = $this->api->verifyPayment($correlationID);
+        $chargeId = "pedido-{$pedidoID}";
+        $resultado = $this->api->verifyPayment($chargeId);
         
         if ($resultado['success'] && isset($resultado['charge'])) {
             $charge = $resultado['charge'];
@@ -607,7 +607,7 @@ print_r($status);
 
 ```php
 'flowpay' => [
-    'token' => env('FLOWPAY_API_TOKEN'),
+    'token' => env('FLOW_API_KEY'),
 ],
 ```
 
@@ -616,7 +616,7 @@ print_r($status);
 Crie um arquivo `.env`:
 
 ```bash
-FLOWPAY_API_TOKEN=seu_token_aqui
+FLOW_API_KEY=seu_token_aqui
 ```
 
 <Note>

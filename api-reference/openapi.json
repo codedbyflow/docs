@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
+    "title": "Flow API - Documentação de Pagamentos",
+    "description": "API para criação e gerenciamento de pagamentos PIX através da integração com a Woovi",
     "license": {
       "name": "MIT"
     },
@@ -10,7 +10,12 @@
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
+      "url": "https://seu-dominio.com",
+      "description": "Produção"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Desenvolvimento"
     }
   ],
   "security": [
@@ -19,36 +24,35 @@
     }
   ],
   "paths": {
-    "/plants": {
-      "get": {
-        "description": "Returns all plants from the system that the user has access to",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of results to return",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
+    "/api/flow-api/charge": {
+      "post": {
+        "summary": "Criar Pagamento",
+        "description": "Cria uma nova cobrança PIX e retorna o código PIX e QR Code para pagamento",
+        "operationId": "createCharge",
+        "requestBody": {
+          "description": "Dados do pagamento",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChargeRequest"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
-            "description": "Plant response",
+            "description": "Charge criada com sucesso",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
-                  }
+                  "$ref": "#/components/schemas/ChargeResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Unexpected error",
+            "description": "Erro de validação",
             "content": {
               "application/json": {
                 "schema": {
@@ -56,35 +60,19 @@
                 }
               }
             }
-          }
-        }
-      },
-      "post": {
-        "description": "Creates a new plant in the store",
-        "requestBody": {
-          "description": "Plant to add to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "plant response",
+          "401": {
+            "description": "API key inválida ou não fornecida",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Plant"
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
           },
-          "400": {
-            "description": "unexpected error",
+          "500": {
+            "description": "Erro interno do servidor",
             "content": {
               "application/json": {
                 "schema": {
@@ -96,28 +84,35 @@
         }
       }
     },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
+    "/api/flow-api/charge/{chargeId}": {
+      "get": {
+        "summary": "Verificar Status do Pagamento",
+        "description": "Verifica o status atual de uma charge criada anteriormente",
+        "operationId": "verifyCharge",
         "parameters": [
           {
-            "name": "id",
+            "name": "chargeId",
             "in": "path",
-            "description": "ID of plant to delete",
+            "description": "ID da charge retornado ao criar o pagamento",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
+          "200": {
+            "description": "Status da charge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChargeResponse"
+                }
+              }
+            }
           },
           "400": {
-            "description": "unexpected error",
+            "description": "ID da charge é obrigatório",
             "content": {
               "application/json": {
                 "schema": {
@@ -125,28 +120,26 @@
                 }
               }
             }
-          }
-        }
-      }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
-        "requestBody": {
-          "description": "Plant added to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+          },
+          "401": {
+            "description": "API key inválida ou inativa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
+          },
+          "404": {
+            "description": "Charge não encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -154,55 +147,148 @@
   },
   "components": {
     "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
+      "CreateChargeRequest": {
         "type": "object",
+        "required": ["value"],
         "properties": {
-          "name": {
-            "description": "The name of the plant",
-            "type": "string"
+          "value": {
+            "type": "number",
+            "description": "Valor do pagamento em reais (ex: 1.00 = R$ 1,00)",
+            "minimum": 0.01,
+            "example": 1.00
           },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
+          "description": {
+            "type": "string",
+            "description": "Descrição do pagamento",
+            "example": "Pagamento de teste via API"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "description": "Tempo de expiração em segundos (padrão: 3600 = 1 hora)",
+            "minimum": 60,
+            "default": 3600,
+            "example": 3600
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
           }
         }
       },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
-          },
-          {
-            "required": [
-              "id"
-            ],
-            "type": "object",
-            "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          }
-        ]
-      },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
+      "Customer": {
         "type": "object",
         "properties": {
-          "error": {
-            "type": "integer",
-            "format": "int32"
+          "name": {
+            "type": "string",
+            "description": "Nome do cliente",
+            "example": "Cliente Teste"
           },
-          "message": {
-            "type": "string"
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email do cliente",
+            "example": "cliente@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Telefone do cliente (formato: +5511999999999)",
+            "example": "+5511999999999"
+          }
+        }
+      },
+      "Charge": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID único da charge (correlationID)",
+            "example": "flow_123_1704067200000_abc123"
+          },
+          "value": {
+            "type": "number",
+            "description": "Valor do pagamento em reais",
+            "example": 1.00
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ACTIVE", "PAID", "CONFIRMED", "COMPLETED", "EXPIRED", "CANCELLED"],
+            "description": "Status da charge",
+            "example": "ACTIVE"
+          },
+          "pixCode": {
+            "type": "string",
+            "description": "Código PIX copia e cola (texto)",
+            "example": "00020126580014br.gov.bcb.pix..."
+          },
+          "pixCodeBase64": {
+            "type": "string",
+            "description": "Código PIX em base64",
+            "example": "MDAwMjAxMjY1ODAwMTRicjpnb3YuYmNiLnBpeC4uLg=="
+          },
+          "qrCode": {
+            "$ref": "#/components/schemas/QRCode"
+          },
+          "publicPaymentUrl": {
+            "type": "string",
+            "description": "Link público para página de pagamento",
+            "example": "http://localhost:3000/pagamento-publico/flow_123_1704067200000_abc123"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Data/hora de expiração (ISO 8601)",
+            "example": "2024-01-01T12:00:00.000Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Data/hora de criação (ISO 8601)",
+            "example": "2024-01-01T11:00:00.000Z"
+          }
+        }
+      },
+      "QRCode": {
+        "type": "object",
+        "properties": {
+          "emv": {
+            "type": "string",
+            "description": "Código PIX EMV (mesmo que pixCode)",
+            "example": "00020126580014br.gov.bcb.pix..."
+          },
+          "image": {
+            "type": "string",
+            "description": "Imagem do QR Code em base64 (data URI)",
+            "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+          }
+        }
+      },
+      "ChargeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "charge": {
+            "$ref": "#/components/schemas/Charge"
+          },
+          "woovi_response": {
+            "type": "object",
+            "description": "Resposta completa da Woovi"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Mensagem de erro",
+            "example": "Valor inválido. Deve ser um número maior que zero."
+          },
+          "details": {
+            "type": "object",
+            "description": "Detalhes adicionais do erro"
           }
         }
       }
@@ -210,7 +296,9 @@
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
-        "scheme": "bearer"
+        "scheme": "bearer",
+        "bearerFormat": "API Key",
+        "description": "API Key no formato Bearer Token. Exemplo: Authorization: Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0="
       }
     }
   }

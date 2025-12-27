@@ -1,12 +1,12 @@
 ---
-title: "FlowPay API"
-description: "Documentação completa da API FlowPay para integração de pagamentos PIX"
+title: "Flow API - Documentação de Pagamentos"
+description: "Documentação completa da Flow API para integração de pagamentos PIX com Woovi"
 icon: "home"
 ---
 
-## Bem-vindo à API FlowPay
+## Bem-vindo à Flow API
 
-A API FlowPay permite que você integre facilmente pagamentos PIX em seu sistema de forma rápida e segura.
+A Flow API permite criar e gerenciar pagamentos PIX através da integração com a Woovi. Quando um pagamento é confirmado, o saldo é automaticamente adicionado à carteira do usuário associado à API key utilizada.
 
 <Card
   title="Introdução à API"
@@ -14,10 +14,10 @@ A API FlowPay permite que você integre facilmente pagamentos PIX em seu sistema
   href="/api-reference/introduction"
   horizontal
 >
-  Comece aqui para entender os conceitos básicos da API FlowPay.
+  Comece aqui para entender os conceitos básicos da Flow API e como obter sua API Key.
 </Card>
 
-## Recursos Principais
+## Características Principais
 
 <Columns cols={2}>
   <Card
@@ -25,38 +25,38 @@ A API FlowPay permite que você integre facilmente pagamentos PIX em seu sistema
     icon="credit-card"
     href="/api-reference/endpoint/create-payment"
   >
-    Crie cobranças PIX e obtenha QR Code e link de pagamento instantaneamente.
+    Crie cobranças PIX dinâmicas e obtenha QR Code (imagem base64) e link público instantaneamente.
   </Card>
   <Card
     title="Verificar Pagamento"
     icon="check-circle"
     href="/api-reference/endpoint/verify-payment"
   >
-    Verifique o status de qualquer pagamento usando o correlationID.
+    Verifique o status de qualquer pagamento usando o chargeId retornado.
   </Card>
   <Card
-    title="Integração Simples"
-    icon="plug"
+    title="Processamento Automático"
+    icon="zap"
     href="/api-reference/introduction"
   >
-    Integre pagamentos PIX em minutos com nossa API RESTful simples.
+    Pagamentos são processados automaticamente e o saldo é creditado na carteira.
   </Card>
   <Card
-    title="Exemplos de Código"
-    icon="code"
-    href="/api-reference/endpoint/create-payment"
+    title="Sistema de Taxas"
+    icon="calculator"
+    href="/api-reference/introduction"
   >
-    Veja exemplos de integração em Python, Node.js, PHP, Java e mais.
+    Taxas automáticas: R$ 1,00 até R$ 35,00 ou 2,99% acima disso.
   </Card>
 </Columns>
 
 ## Início Rápido
 
-1. **Obtenha seu token de API** no dashboard após aprovação da sua solicitação
+1. **Obtenha sua API Key** no painel da Flow (seção de API Keys)
 2. **Configure a autenticação** usando Bearer token no header `Authorization`
-3. **Crie seu primeiro pagamento** usando o endpoint `/payment/create`
-4. **Verifique o status** com o endpoint `/payment/verify/{correlationID}`
+3. **Crie seu primeiro pagamento** usando o endpoint `POST /api/flow-api/charge`
+4. **Verifique o status** com o endpoint `GET /api/flow-api/charge/{chargeId}`
 
 <Note>
-  Todas as requisições devem incluir o header `Authorization: Bearer {seu_token_api}` e usar a base URL `https://www.flowapplications.com.br/api/v1`
+  Todas as requisições devem incluir o header `Authorization: Bearer <sua_api_key>`. O pagamento será processado automaticamente quando confirmado.
 </Note>

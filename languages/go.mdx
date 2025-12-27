@@ -1,12 +1,12 @@
 ---
 title: "Go"
-description: "Implementação completa da API FlowPay em Go (Golang) com exemplos práticos"
+description: "Implementação completa da Flow API em Go (Golang) com exemplos práticos"
 icon: "terminal"
 ---
 
 ## Implementação Go
 
-Guia completo para integrar a API FlowPay em suas aplicações Go usando net/http ou bibliotecas HTTP modernas.
+Guia completo para integrar a Flow API em suas aplicações Go usando net/http ou bibliotecas HTTP modernas.
 
 <Card title="Repositório de exemplo" icon="github" href="#">
   Veja o código completo no GitHub
@@ -37,7 +37,7 @@ import (
     "time"
 )
 
-const BaseURL = "https://www.flowapplications.com.br/api/v1"
+const BaseURL = "https://seu-dominio.com"
 
 type Client struct {
     BaseURL    string
@@ -46,12 +46,10 @@ type Client struct {
 }
 
 type CreatePaymentRequest struct {
-    CorrelationID string                 `json:"correlationID"`
-    Value         float64                `json:"value"`
-    Comment       string                 `json:"comment,omitempty"`
-    ExpiresIn     int                    `json:"expiresIn,omitempty"`
-    ExpiresDate   string                 `json:"expiresDate,omitempty"`
-    Customer      *Customer              `json:"customer,omitempty"`
+    Value        float64   `json:"value"`
+    Description  string    `json:"description,omitempty"`
+    ExpiresIn    int       `json:"expiresIn,omitempty"`
+    Customer     *Customer `json:"customer,omitempty"`
 }
 
 type Customer struct {
@@ -66,18 +64,21 @@ type TaxID struct {
     Type  string `json:"type"` // BR:CPF ou BR:CNPJ
 }
 
+type QRCode struct {
+    EMV   string `json:"emv"`
+    Image  string `json:"image"`
+}
+
 type PaymentCharge struct {
-    CorrelationID  string    `json:"correlationID"`
-    Value          float64   `json:"value"`
-    Status         string    `json:"status"` // ACTIVE, COMPLETED, EXPIRED
-    QRCodeImage    string    `json:"qrCodeImage"`
-    BRCode         string    `json:"brCode"`
-    GlobalID       string    `json:"globalID"`
-    TransactionID  *string   `json:"transactionID"`
-    ExpiresIn      *int      `json:"expiresIn,omitempty"`
-    ExpiresDate    *string   `json:"expiresDate,omitempty"`
-    CreatedAt      string    `json:"createdAt"`
-    UpdatedAt      string    `json:"updatedAt"`
+    ID              string    `json:"id"`
+    Value           float64   `json:"value"`
+    Status          string    `json:"status"` // ACTIVE, PAID, CONFIRMED, COMPLETED, EXPIRED, CANCELLED
+    PixCode         string    `json:"pixCode"`
+    PixCodeBase64   string    `json:"pixCodeBase64"`
+    QRCode          QRCode    `json:"qrCode"`
+    PublicPaymentURL string   `json:"publicPaymentUrl"`
+    ExpiresAt       string    `json:"expiresAt"`
+    CreatedAt       string    `json:"createdAt"`
 }
 
 type PaymentResponse struct {
@@ -177,7 +178,7 @@ func (c *ClientResty) CreatePayment(req CreatePaymentRequest) (*PaymentResponse,
     httpResp, err := c.client.R().
         SetBody(req).
         SetResult(&resp).
-        Post("/payment/create")
+        Post("/api/flow-api/charge")
     
     if err != nil {
         return nil, fmt.Errorf("erro ao criar pagamento: %w", err)
@@ -195,7 +196,7 @@ func (c *ClientResty) VerifyPayment(correlationID string) (*PaymentResponse, err
     
     httpResp, err := c.client.R().
         SetResult(&resp).
-        Get(fmt.Sprintf("/payment/verify/%s", correlationID))
+        Get(fmt.Sprintf("/api/flow-api/charge/%s", correlationID))
     
     if err != nil {
         return nil, fmt.Errorf("erro ao verificar pagamento: %w", err)

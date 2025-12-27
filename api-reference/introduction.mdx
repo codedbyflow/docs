@@ -1,42 +1,120 @@
 ---
-title: 'Introdução à API FlowApplications'
-description: 'Documentação completa da API FlowApplications v1 para integração de pagamentos PIX'
+title: 'Introdução à Flow API'
+description: 'Documentação completa da Flow API para integração de pagamentos PIX com Woovi'
 icon: "rocket"
 ---
 
-## Documentação da API FlowApplications v1
+## Visão Geral
 
-Bem-vindo à documentação da API FlowApplications! Nossa API permite que você integre facilmente pagamentos PIX dinâmicos em seu sistema usando a Woovi.
+A Flow API permite criar e gerenciar pagamentos PIX através da integração com a Woovi. Quando um pagamento é confirmado, o saldo é automaticamente adicionado à carteira do usuário associado à API key utilizada.
+
+### Características Principais
+
+- ✅ Criação de cobranças PIX dinâmicas
+- ✅ Geração automática de QR Code (imagem base64)
+- ✅ Verificação de status de pagamento
+- ✅ Processamento automático de pagamentos confirmados
+- ✅ Adição automática de saldo na carteira do usuário
+- ✅ Suporte a webhooks e verificação periódica
 
 ## Base URL
 
-Todas as requisições devem ser feitas para a seguinte base URL:
-
 ```
-https://www.flowapplications.com.br/api/v1
+Produção: https://seu-dominio.com
+Desenvolvimento: http://localhost:3000
 ```
 
 ## Autenticação
 
-Todos os endpoints (exceto o endpoint de QR code) requerem autenticação via Bearer Token no header:
+Todas as requisições requerem autenticação via API Key no formato Bearer Token.
+
+### Como Obter uma API Key
+
+1. Acesse o painel da Flow
+2. Navegue até a seção de API Keys
+3. Crie uma nova API Key
+4. Copie a chave gerada (ela só será exibida uma vez)
+
+### Formato de Autenticação
 
 ```
-Authorization: Bearer {seu_token_api}
+Authorization: Bearer <sua_api_key>
 ```
 
-O token da API pode ser gerado através do dashboard após aprovação da solicitação de acesso à API.
+**Exemplo:**
+```
+Authorization: Bearer flow_PnoJ4RIjN2Qs6yre1S87blyI3qqGlERvMQX1njoAkl0=
+```
 
 <Warning>
-Mantenha seu token de API seguro e nunca o compartilhe publicamente. O token deve ser mantido como uma variável de ambiente ou configuração segura.
+Mantenha sua API Key segura e nunca a compartilhe publicamente. A chave deve ser mantida como uma variável de ambiente ou configuração segura.
 </Warning>
 
 ## Status de Pagamento
 
 Os pagamentos podem ter os seguintes status:
 
-- **ACTIVE**: Pagamento pendente, aguardando pagamento
-- **COMPLETED**: Pagamento confirmado e concluído
-- **EXPIRED**: Pagamento expirado, não pode mais ser pago
+- **ACTIVE**: Charge criada e aguardando pagamento
+- **PAID**: Pagamento confirmado
+- **CONFIRMED**: Pagamento confirmado (sinônimo de PAID)
+- **COMPLETED**: Pagamento completado (sinônimo de PAID)
+- **EXPIRED**: Charge expirada (não é mais possível pagar)
+- **CANCELLED**: Charge cancelada
+
+## Sistema de Taxas
+
+### Como Funciona
+
+Quando um pagamento é recebido, uma taxa é descontada automaticamente antes de creditar o valor na carteira:
+
+- **Até R$ 35,00**: Taxa fixa de **R$ 1,00**
+- **Acima de R$ 35,00**: Taxa de **2,99%** sobre o valor
+
+### Exemplos
+
+| Valor Recebido | Taxa | Valor Creditado |
+|----------------|------|----------------|
+| R$ 10,00 | R$ 1,00 | R$ 9,00 |
+| R$ 35,00 | R$ 1,00 | R$ 34,00 |
+| R$ 36,00 | R$ 1,08 (2,99%) | R$ 34,92 |
+| R$ 50,00 | R$ 1,50 (2,99%) | R$ 48,50 |
+| R$ 100,00 | R$ 2,99 (2,99%) | R$ 97,01 |
+| R$ 1000,00 | R$ 29,90 (2,99%) | R$ 970,10 |
+
+### Transações
+
+O sistema cria duas transações:
+1. **Crédito**: Valor líquido (após desconto da taxa)
+2. **Débito**: Taxa de recebimento (para rastreamento)
+
+## Processamento Automático
+
+### Como Funciona
+
+Quando você cria uma charge através da API:
+
+1. ✅ A charge é criada na Woovi
+2. ✅ Um processo em background é iniciado automaticamente
+3. ✅ O sistema verifica o status a cada 30 segundos
+4. ✅ Quando o pagamento é confirmado:
+   - A taxa é calculada e descontada automaticamente
+   - Uma transação de crédito é criada com o valor líquido
+   - Uma transação de débito é criada para a taxa (rastreamento)
+   - O saldo líquido é adicionado automaticamente à carteira do usuário
+   - O processo de verificação é encerrado
+
+### Tempo de Verificação
+
+- **Início**: 5 segundos após a criação da charge
+- **Intervalo**: A cada 30 segundos
+- **Duração máxima**: 20 minutos (40 tentativas)
+- **Após 20 minutos**: O pagamento ainda será processado quando confirmado, mas a verificação automática é encerrada
+
+### Importante
+
+- ⚠️ Não é necessário fazer polling manual se você não precisar de atualizações em tempo real
+- ✅ O pagamento será processado automaticamente mesmo sem verificação manual
+- ✅ Você pode verificar o status a qualquer momento usando o endpoint de verificação
 
 ## Códigos de Status HTTP
 
@@ -47,39 +125,51 @@ Os pagamentos podem ter os seguintes status:
 ### 4xx - Erro do Cliente
 
 - **400 Bad Request**: Parâmetros inválidos ou faltando
-- **401 Unauthorized**: Token de autenticação inválido, expirado ou não fornecido
-- **404 Not Found**: Recurso não encontrado (pagamento, QR code, etc)
+- **401 Unauthorized**: API key inválida, expirada ou não fornecida
+- **404 Not Found**: Recurso não encontrado (charge não encontrada)
 
 ### 5xx - Erro do Servidor
 
-- **500 Internal Server Error**: Erro interno do servidor, configuração faltando ou erro na comunicação com a Woovi
+- **500 Internal Server Error**: Erro interno do servidor ou erro na comunicação com a Woovi
 
 ## Limites e Restrições
 
-- **Valor mínimo**: R$ 0,01
-- **Valor máximo**: Sem limite
-- **Tempo de expiração mínimo**: 300 segundos (5 minutos)
-- **CorrelationID**: Deve ser único para cada pagamento. Use um formato que garanta unicidade (ex: UUID, timestamp, ID do pedido)
-- **Rate Limits**: Respeite os limites de requisições. Em caso de abuso, o acesso à API pode ser suspenso
+### Valores
+
+- ✅ Valor mínimo: R$ 0,01
+- ✅ Valor máximo: Conforme limites da Woovi
+- ✅ Formato: Número decimal (ex: `1.00`, `10.50`, `100.99`)
+
+### Expiração
+
+- ⏱️ Tempo padrão: 1 hora (3600 segundos)
+- ⏱️ Tempo máximo: Conforme limites da Woovi
+- ⏱️ Tempo mínimo: 60 segundos
+
+### Rate Limiting
+
+- A API pode ter limites de requisições por minuto
+- Em caso de rate limit, você receberá um erro 429
+- Implemente retry com backoff exponencial
 
 ## Notas Importantes
 
-1. **QR Code Image**: O campo `qrCodeImage` retorna uma URL para acessar a imagem PNG do QR code diretamente. Você pode usar essa URL em tags `<img>` ou baixar a imagem.
+1. **QR Code**: O campo `qrCode.image` retorna a imagem do QR Code em base64 (data URI). Você pode usar diretamente em tags `<img>`.
 
-2. **paymentLinkUrl**: Este campo foi **removido** da resposta da API. Use o `qrCodeImage` ou o `brCode` para realizar o pagamento.
+2. **publicPaymentUrl**: Link público para página de pagamento completa que pode ser compartilhado com clientes.
 
-3. **CorrelationID**: Deve ser único para cada pagamento. Use um formato que garanta unicidade (ex: UUID, timestamp, ID do pedido).
+3. **charge.id**: Use este ID (correlationID) para verificar o status do pagamento.
 
 4. **Valores**: Os valores são sempre em reais (R$). A API converte automaticamente para centavos ao enviar para a Woovi.
 
-5. **Expiração**: Se não fornecer `expiresIn` ou `expiresDate`, a Woovi pode usar um tempo padrão. Recomendamos sempre especificar o tempo de expiração.
+5. **Expiração**: Se não fornecer `expiresIn`, o padrão é 1 hora (3600 segundos).
 
-6. **Webhooks**: Consulte a documentação sobre webhooks para receber notificações automáticas quando um pagamento for confirmado.
+6. **Processamento Automático**: O pagamento será processado automaticamente quando confirmado, não é necessário fazer polling manual.
 
 ## Suporte
 
-Para suporte ou dúvidas sobre a API:
+Para dúvidas ou problemas:
 
-- **Documentação completa**: https://www.flowapplications.com.br/docs
-- **Dashboard**: https://www.flowapplications.com.br/dashboard
-- **Email**: suporte@flowapplications.com.br
+1. Verifique esta documentação
+2. Consulte os logs de erro da API
+3. Entre em contato com o suporte da Flow

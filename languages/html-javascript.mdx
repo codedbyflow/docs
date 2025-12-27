@@ -1,12 +1,12 @@
 ---
 title: 'HTML & JavaScript'
-description: 'Implementação completa da API FlowPay em JavaScript puro (HTML estático) com exemplos práticos'
+description: 'Implementação completa da Flow API em JavaScript puro (HTML estático) com exemplos práticos'
 icon: 'html'
 ---
 
 ## Implementação HTML & JavaScript
 
-Guia completo para integrar a API FlowPay em páginas HTML estáticas usando JavaScript puro (vanilla JS) ou Fetch API.
+Guia completo para integrar a Flow API em páginas HTML estáticas usando JavaScript puro (vanilla JS) ou Fetch API.
 
 <Card
   title="Repositório de exemplo"
@@ -24,11 +24,11 @@ Guia completo para integrar a API FlowPay em páginas HTML estáticas usando Jav
 // flowpay.js
 class FlowPayAPI {
     constructor(apiToken) {
-        this.baseURL = 'https://www.flowapplications.com.br/api/v1';
-        this.apiToken = apiToken || '';
+        this.baseURL = 'https://seu-dominio.com';
+        this.apiKey = apiToken || '';
         
-        if (!this.apiToken) {
-            console.error('⚠️ Token de API não fornecido');
+        if (!this.apiKey) {
+            console.error('⚠️ API Key não fornecida');
         }
     }
     
@@ -38,7 +38,7 @@ class FlowPayAPI {
         const options = {
             method: method,
             headers: {
-                'Authorization': `Bearer ${this.apiToken}`,
+                'Authorization': `Bearer ${this.apiKey}`,
                 'Content-Type': 'application/json',
             },
         };
@@ -63,11 +63,11 @@ class FlowPayAPI {
     }
     
     async createPayment(data) {
-        return this.makeRequest('POST', '/payment/create', data);
+        return this.makeRequest('POST', '/api/flow-api/charge', data);
     }
     
-    async verifyPayment(correlationID) {
-        return this.makeRequest('GET', `/payment/verify/${correlationID}`);
+    async verifyPayment(chargeId) {
+        return this.makeRequest('GET', `/api/flow-api/charge/${chargeId}`);
     }
 }
 
@@ -83,7 +83,7 @@ if (typeof module !== 'undefined' && module.exports) {
 // flowpay-xhr.js
 class FlowPayAPI {
     constructor(apiToken) {
-        this.baseURL = 'https://www.flowapplications.com.br/api/v1';
+        this.baseURL = 'https://seu-dominio.com';
         this.apiToken = apiToken || '';
     }
     
@@ -129,11 +129,11 @@ class FlowPayAPI {
     }
     
     createPayment(data) {
-        return this.makeRequest('POST', '/payment/create', data);
+        return this.makeRequest('POST', '/api/flow-api/charge', data);
     }
     
-    verifyPayment(correlationID) {
-        return this.makeRequest('GET', `/payment/verify/${correlationID}`);
+    verifyPayment(chargeId) {
+        return this.makeRequest('GET', `/api/flow-api/charge/${chargeId}`);
     }
 }
 ```
@@ -150,10 +150,10 @@ class FlowPayAPI {
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "chargeId": "pedido-123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "qrCodeImage": "https://seu-dominio.com/payment/qrcode/pedido-123",
     "brCode": "00020126580014br.gov.bcb.pix...",
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": null,
@@ -175,10 +175,10 @@ class FlowPayAPI {
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "chargeId": "pedido-123",
     "value": 10.50,
     "status": "COMPLETED",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
+    "qrCodeImage": "https://seu-dominio.com/payment/qrcode/pedido-123",
     "brCode": "00020126580014br.gov.bcb.pix...",
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": "E1234567820240101120000",
@@ -199,7 +199,7 @@ class FlowPayAPI {
 ```json
 {
   "success": false,
-  "error": "correlationID e value são obrigatórios"
+  "error": "chargeId e value são obrigatórios"
 }
 ```
 
@@ -289,8 +289,8 @@ class FlowPayAPI {
         </div>
         
         <div class="form-group">
-            <label for="correlationID">ID de Correlação:</label>
-            <input type="text" id="correlationID" required placeholder="pedido-123">
+            <label for="chargeId">ID de Correlação:</label>
+            <input type="text" id="chargeId" required placeholder="pedido-123">
         </div>
         
         <div class="form-group">
@@ -329,7 +329,7 @@ class FlowPayAPI {
             
             try {
                 const data = {
-                    correlationID: document.getElementById('correlationID').value,
+                    chargeId: document.getElementById('chargeId').value,
                     value: parseFloat(document.getElementById('value').value),
                     comment: document.getElementById('comment').value || undefined,
                     expiresIn: 3600
@@ -343,7 +343,7 @@ class FlowPayAPI {
                     resultDiv.className = 'result success';
                     resultDiv.innerHTML = `
                         <h2>✅ Pagamento criado com sucesso!</h2>
-                        <p><strong>ID:</strong> ${charge.correlationID}</p>
+                        <p><strong>ID:</strong> ${charge.chargeId}</p>
                         <p><strong>Valor:</strong> R$ ${charge.value.toFixed(2)}</p>
                         <p><strong>Status:</strong> ${charge.status}</p>
                         
@@ -381,12 +381,12 @@ class FlowPayAPI {
 
 ```javascript Função Simples
 // criar_pagamento.js
-async function criarPagamento(apiToken, correlationID, valor, comentario = null) {
+async function criarPagamento(apiToken, chargeId, valor, comentario = null) {
     const api = new FlowPayAPI(apiToken);
     
     try {
         const data = {
-            correlationID: correlationID,
+            chargeId: chargeId,
             value: valor
         };
         
@@ -501,8 +501,8 @@ async function criarPagamento(apiToken, correlationID, valor, comentario = null)
         </div>
         
         <div class="form-group">
-            <label for="correlationID">ID de Correlação:</label>
-            <input type="text" id="correlationID" required placeholder="pedido-123">
+            <label for="chargeId">ID de Correlação:</label>
+            <input type="text" id="chargeId" required placeholder="pedido-123">
         </div>
         
         <button type="submit">Verificar Pagamento</button>
@@ -518,13 +518,13 @@ async function criarPagamento(apiToken, correlationID, valor, comentario = null)
             e.preventDefault();
             
             const apiToken = document.getElementById('apiToken').value;
-            const correlationID = document.getElementById('correlationID').value;
+            const chargeId = document.getElementById('chargeId').value;
             const resultDiv = document.getElementById('result');
             
             api.apiToken = apiToken;
             
             try {
-                const resultado = await api.verifyPayment(correlationID);
+                const resultado = await api.verifyPayment(chargeId);
                 
                 if (resultado.success && resultado.charge) {
                     const charge = resultado.charge;
@@ -533,7 +533,7 @@ async function criarPagamento(apiToken, correlationID, valor, comentario = null)
                     resultDiv.className = `status ${statusClass}`;
                     resultDiv.innerHTML = `
                         <h2>📊 Status do Pagamento</h2>
-                        <p><strong>ID:</strong> ${charge.correlationID}</p>
+                        <p><strong>ID:</strong> ${charge.chargeId}</p>
                         <p><strong>Valor:</strong> R$ ${charge.value.toFixed(2)}</p>
                         <p><strong>Status:</strong> ${charge.status}</p>
                         ${charge.transactionID ? `<p><strong>Transaction ID:</strong> ${charge.transactionID}</p>` : ''}
@@ -558,13 +558,13 @@ async function criarPagamento(apiToken, correlationID, valor, comentario = null)
 
 ```javascript Polling
 // polling.js
-async function aguardarPagamento(api, correlationID, intervalo = 5000, timeout = 300000) {
+async function aguardarPagamento(api, chargeId, intervalo = 5000, timeout = 300000) {
     const inicio = Date.now();
     
     return new Promise((resolve, reject) => {
         const interval = setInterval(async () => {
             try {
-                const resultado = await api.verifyPayment(correlationID);
+                const resultado = await api.verifyPayment(chargeId);
                 
                 if (resultado.success && resultado.charge) {
                     const charge = resultado.charge;
@@ -633,7 +633,7 @@ async function aguardarPagamento(api, correlationID, intervalo = 5000, timeout =
     <script>
         const API_TOKEN = 'seu_token_aqui'; // Em produção, usar variável de ambiente
         const api = new FlowPayAPI(API_TOKEN);
-        let correlationID = null;
+        let chargeId = null;
         
         async function processarPagamento() {
             try {
@@ -641,11 +641,11 @@ async function aguardarPagamento(api, correlationID, intervalo = 5000, timeout =
                 const pedidoID = 'PED-' + Date.now();
                 const valor = 99.90;
                 
-                correlationID = `pedido-${pedidoID}`;
+                chargeId = `pedido-${pedidoID}`;
                 
                 // Criar pagamento
                 const resultado = await api.createPayment({
-                    correlationID: correlationID,
+                    chargeId: chargeId,
                     value: valor,
                     comment: `Pagamento do pedido #${pedidoID}`,
                     expiresIn: 3600
@@ -675,7 +675,7 @@ async function aguardarPagamento(api, correlationID, intervalo = 5000, timeout =
         async function verificarPagamentoPeriodicamente() {
             const interval = setInterval(async () => {
                 try {
-                    const resultado = await api.verifyPayment(correlationID);
+                    const resultado = await api.verifyPayment(chargeId);
                     
                     if (resultado.success && resultado.charge) {
                         const charge = resultado.charge;
