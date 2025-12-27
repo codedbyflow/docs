@@ -211,11 +211,14 @@ Quando o pagamento é criado com sucesso, a API retorna:
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "id": "flow_123_1704067200000_abc123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://flowapplications.com.br/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
+    "pixCode": "00020126580014br.gov.bcb.pix...",
+    "qrCode": {
+      "emv": "00020126580014br.gov.bcb.pix...",
+      "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    },
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": null,
     "expiresIn": 3600,
@@ -237,20 +240,19 @@ const flowpay = require('../flowpay');
 // Criar pagamento
 router.post('/create', async (req, res) => {
   try {
-    const { correlationID, value, comment, expiresIn, customer } = req.body;
+    const { value, description, expiresIn, customer } = req.body;
 
     // Validação
-    if (!correlationID || !value) {
+    if (!value || value <= 0) {
       return res.status(400).json({
         success: false,
-        error: 'correlationID e value são obrigatórios'
+        error: 'value é obrigatório e deve ser maior que zero'
       });
     }
 
     const data = {
-      correlationID,
       value,
-      ...(comment && { comment }),
+      ...(description && { description }),
       ...(expiresIn && { expiresIn }),
       ...(customer && { customer })
     };
@@ -262,11 +264,12 @@ router.post('/create', async (req, res) => {
       res.status(200).json({
         success: true,
         charge: {
-          correlationID: charge.correlationID,
+          id: charge.id,
           value: charge.value,
           status: charge.status,
-          qrCodeImage: charge.qrCodeImage,
-          brCode: charge.brCode
+          pixCode: charge.pixCode,
+          qrCode: charge.qrCode,
+          publicPaymentUrl: charge.publicPaymentUrl
         }
       });
     } else {
@@ -298,16 +301,15 @@ export class PaymentService {
   constructor(private httpService: HttpService) {}
 
   async createPayment(data: {
-    correlationID: string;
     value: number;
-    comment?: string;
+    description?: string;
     expiresIn?: number;
     customer?: any;
   }) {
     try {
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.baseURL}/payment/create`,
+          `${this.baseURL}/api/flow-api/charge`,
           data,
           {
             headers: {
@@ -327,11 +329,11 @@ export class PaymentService {
     }
   }
 
-  async verifyPayment(correlationID: string) {
+  async verifyPayment(chargeId: string) {
     try {
       const response = await firstValueFrom(
         this.httpService.get(
-          `${this.baseURL}/payment/verify/${correlationID}`,
+          `${this.baseURL}/api/flow-api/charge/${chargeId}`,
           {
             headers: {
               Authorization: `Bearer ${this.apiToken}`
@@ -363,11 +365,14 @@ export class PaymentService {
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "id": "flow_123_1704067200000_abc123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://flowapplications.com.br/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
+    "pixCode": "00020126580014br.gov.bcb.pix...",
+    "qrCode": {
+      "emv": "00020126580014br.gov.bcb.pix...",
+      "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    },
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": null,
     "expiresIn": 3600,
@@ -388,11 +393,14 @@ export class PaymentService {
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "id": "flow_123_1704067200000_abc123",
     "value": 10.50,
-    "status": "COMPLETED",
-    "qrCodeImage": "https://flowapplications.com.br/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
+    "status": "PAID",
+    "pixCode": "00020126580014br.gov.bcb.pix...",
+    "qrCode": {
+      "emv": "00020126580014br.gov.bcb.pix...",
+      "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    },
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": "E1234567820240101120000",
     "expiresIn": 3600,
@@ -412,7 +420,7 @@ export class PaymentService {
 ```json
 {
   "success": false,
-  "error": "correlationID e value são obrigatórios"
+  "error": "Valor inválido. Deve ser um número maior que zero."
 }
 ```
 
@@ -471,7 +479,7 @@ async function verificarPagamento(chargeId) {
 // verificarPeriodicamente.js
 const flowpay = require('./flowpay');
 
-async function verificarPagamento(correlationID) {
+async function verificarPagamento(chargeId) {
   try {
     const response = await flowpay.get(`/api/flow-api/charge/${chargeId}`);
     return response.data;
@@ -480,18 +488,18 @@ async function verificarPagamento(correlationID) {
   }
 }
 
-async function aguardarPagamento(correlationID, intervalo = 5000, timeout = 300000) {
+async function aguardarPagamento(chargeId, intervalo = 5000, timeout = 300000) {
   const inicio = Date.now();
 
   return new Promise((resolve, reject) => {
     const interval = setInterval(async () => {
       try {
-        const resultado = await verificarPagamento(correlationID);
+        const resultado = await verificarPagamento(chargeId);
         
         if (resultado.success && resultado.charge) {
           const { status } = resultado.charge;
 
-          if (status === 'COMPLETED') {
+          if (status === 'PAID' || status === 'CONFIRMED' || status === 'COMPLETED') {
             clearInterval(interval);
             resolve(resultado.charge);
           } else if (status === 'EXPIRED') {
@@ -545,7 +553,6 @@ app.post('/pedidos/:id/pagamento', async (req, res) => {
 
     // Criar pagamento PIX
     const response = await flowpay.post('/payment/create', {
-      correlationID: `pedido-${id}`,
       value: valor,
       comment: `Pagamento do pedido #${id}`,
       expiresIn: 3600, // 1 hora
@@ -564,10 +571,10 @@ app.post('/pedidos/:id/pagamento', async (req, res) => {
       res.json({
         success: true,
         pagamento: {
-          correlationID: response.data.charge.correlationID,
-          qrCode: response.data.charge.qrCodeImage,
-          brCode: response.data.charge.brCode,
-          link: response.data.charge.qrCodeImage,
+          id: response.data.charge.id,
+          qrCode: response.data.charge.qrCode.image,
+          pixCode: response.data.charge.pixCode,
+          link: response.data.charge.publicPaymentUrl,
           expiraEm: response.data.charge.expiresDate
         }
       });
@@ -583,14 +590,17 @@ app.post('/pedidos/:id/pagamento', async (req, res) => {
 // Webhook para verificar status
 app.post('/webhook/pagamento', async (req, res) => {
   try {
-    const { correlationID } = req.body;
+    const { chargeId } = req.body;
     
     const response = await flowpay.get(`/api/flow-api/charge/${chargeId}`);
     
-    if (response.data.success && response.data.charge.status === 'COMPLETED') {
+    const status = response.data.charge?.status || response.data.charge?.paymentMethods?.pix?.status;
+    const isPaid = status === 'PAID' || status === 'CONFIRMED' || status === 'COMPLETED';
+    
+    if (response.data.success && isPaid) {
       // Atualizar pedido como pago no banco de dados
-      console.log(`✅ Pedido ${correlationID} pago!`);
-      // await atualizarPedido(correlationID, 'pago');
+      console.log(`✅ Charge ${chargeId} pago!`);
+      // await atualizarPedido(chargeId, 'pago');
     }
 
     res.json({ success: true });

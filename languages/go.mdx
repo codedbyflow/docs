@@ -89,7 +89,7 @@ type PaymentResponse struct {
 
 func NewClient(apiToken string) *Client {
     if apiToken == "" {
-        apiToken = os.Getenv("FLOWPAY_API_TOKEN")
+        apiToken = os.Getenv("FLOW_API_KEY")
     }
     
     return &Client{
@@ -157,7 +157,7 @@ type ClientResty struct {
 
 func NewClientResty(apiToken string) *ClientResty {
     if apiToken == "" {
-        apiToken = os.Getenv("FLOWPAY_API_TOKEN")
+        apiToken = os.Getenv("FLOW_API_KEY")
     }
     
     client := resty.New()
@@ -191,12 +191,12 @@ func (c *ClientResty) CreatePayment(req CreatePaymentRequest) (*PaymentResponse,
     return &resp, nil
 }
 
-func (c *ClientResty) VerifyPayment(correlationID string) (*PaymentResponse, error) {
+func (c *ClientResty) VerifyPayment(chargeId string) (*PaymentResponse, error) {
     var resp PaymentResponse
     
     httpResp, err := c.client.R().
         SetResult(&resp).
-        Get(fmt.Sprintf("/api/flow-api/charge/%s", correlationID))
+        Get(fmt.Sprintf("/api/flow-api/charge/%s", chargeId))
     
     if err != nil {
         return nil, fmt.Errorf("erro ao verificar pagamento: %w", err)
@@ -222,17 +222,18 @@ func (c *ClientResty) VerifyPayment(correlationID string) (*PaymentResponse, err
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "id": "flow_123_1704067200000_abc123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionID": null,
-    "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:00:00Z"
+    "pixCode": "00020126580014br.gov.bcb.pix...",
+    "pixCodeBase64": "MDAwMjAxMjY1ODAwMTRicjpnb3YuYmNiLnBpeC4uLg==",
+    "qrCode": {
+      "emv": "00020126580014br.gov.bcb.pix...",
+      "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    },
+    "publicPaymentUrl": "https://flowapplications.com.br/pagamento-publico/flow_123_1704067200000_abc123",
+    "expiresAt": "2024-01-01T12:00:00.000Z",
+    "createdAt": "2024-01-01T11:00:00.000Z"
   }
 }
 ```
@@ -247,17 +248,20 @@ func (c *ClientResty) VerifyPayment(correlationID string) (*PaymentResponse, err
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "id": "flow_123_1704067200000_abc123",
+    "correlationID": "flow_123_1704067200000_abc123",
     "value": 10.50,
-    "status": "COMPLETED",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionID": "E1234567820240101120000",
-    "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:05:30Z"
+    "status": "PAID",
+    "paymentMethods": {
+      "pix": {
+        "status": "PAID",
+        "brCode": "00020126580014br.gov.bcb.pix...",
+        "transactionID": "pix_transaction_123"
+      }
+    },
+    "expiresAt": "2024-01-01T12:00:00.000Z",
+    "createdAt": "2024-01-01T11:00:00.000Z",
+    "updatedAt": "2024-01-01T11:05:00.000Z"
   }
 }
 ```
@@ -382,8 +386,8 @@ func main() {
 
 ```go Função Simples
 // verificar_pagamento.go
-func verificarPagamento(client *flowpay.Client, correlationID string) {
-    resp, err := client.VerifyPayment(correlationID)
+func verificarPagamento(client *flowpay.Client, chargeId string) {
+    resp, err := client.VerifyPayment(chargeId)
     if err != nil {
         log.Fatalf("Erro ao verificar pagamento: %v", err)
     }
@@ -486,8 +490,8 @@ func (e *EcommercePagamento) CriarPagamentoPedido(pedidoID string, valor float64
 }
 
 func (e *EcommercePagamento) VerificarPagamentoPedido(pedidoID string) (bool, string) {
-    correlationID := fmt.Sprintf("pedido-%s", pedidoID)
-    resp, err := e.client.VerifyPayment(correlationID)
+    // Use o chargeId retornado ao criar o pagamento
+    resp, err := e.client.VerifyPayment(chargeId)
     
     if err != nil {
         return false, "ERROR"
@@ -580,7 +584,7 @@ import (
 
 func init() {
     godotenv.Load()
-    apiToken := os.Getenv("FLOWPAY_API_TOKEN")
+    apiToken := os.Getenv("FLOW_API_KEY")
 }
 ```
 

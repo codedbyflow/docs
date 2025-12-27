@@ -234,9 +234,8 @@ try {
     $api = new FlowPayAPI();
     
     $data = [
-        'chargeId' => 'pedido-123',
         'value' => 10.50,
-        'comment' => 'Pagamento do pedido #123',
+        'description' => 'Pagamento do pedido #123',
         'expiresIn' => 3600,
     ];
     
@@ -245,9 +244,10 @@ try {
     if ($resultado['success'] && isset($resultado['charge'])) {
         $charge = $resultado['charge'];
         echo "✅ Pagamento criado com sucesso!\n";
-        echo "🔲 QR Code: {$charge['qrCode.image']}\n";
-        echo "🔲 QR Code: {$charge['qrCode.image']}\n";
-        echo "📋 BR Code: {$charge['pixCode']}\n";
+        echo "🆔 Charge ID: {$charge['id']}\n";
+        echo "🔲 QR Code (base64): " . substr($charge['qrCode']['image'], 0, 50) . "...\n";
+        echo "📋 PIX Code: {$charge['pixCode']}\n";
+        echo "🔗 Link Público: {$charge['publicPaymentUrl']}\n";
     } else {
         throw new Exception($resultado['error'] ?? 'Erro desconhecido');
     }
@@ -521,7 +521,7 @@ class EcommercePagamento {
         $data = [
             'chargeId' => "pedido-{$pedidoID}",
             'value' => $valor,
-            'comment' => "Pagamento do pedido #{$pedidoID}",
+            'description' => "Pagamento do pedido #{$pedidoID}",
             'expiresIn' => 3600,
         ];
         

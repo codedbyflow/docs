@@ -111,7 +111,9 @@ public class FlowPayAPI {
         body.addProperty("value", request.getValue());
         
         if (request.getComment() != null) {
-            body.addProperty("comment", request.getComment());
+            if (request.getDescription() != null) {
+                body.addProperty("description", request.getDescription());
+            }
         }
         if (request.getExpiresIn() != null) {
             body.addProperty("expiresIn", request.getExpiresIn());
@@ -204,7 +206,9 @@ public class FlowPayAPI {
         body.addProperty("value", request.getValue());
         
         if (request.getComment() != null) {
-            body.addProperty("comment", request.getComment());
+            if (request.getDescription() != null) {
+                body.addProperty("description", request.getDescription());
+            }
         }
         
         JsonObject response = makeRequest("POST", "/api/flow-api/charge", body);
@@ -227,22 +231,17 @@ public class FlowPayAPI {
 package com.flowpay;
 
 public class CreatePaymentRequest {
-    private String chargeId;
     private Double value;
-    private String comment;
+    private String description;
     private Integer expiresIn;
-    private String expiresDate;
     private Customer customer;
     
     // Getters e Setters
-    public String getCorrelationID() { return chargeId; }
-    public void setCorrelationID(String chargeId) { this.chargeId = chargeId; }
-    
     public Double getValue() { return value; }
     public void setValue(Double value) { this.value = value; }
     
-    public String getComment() { return comment; }
-    public void setComment(String comment) { this.comment = comment; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
     
     public Integer getExpiresIn() { return expiresIn; }
     public void setExpiresIn(Integer expiresIn) { this.expiresIn = expiresIn; }
@@ -257,16 +256,27 @@ public class CreatePaymentRequest {
 // PaymentCharge.java
 package com.flowpay;
 
+public class QRCode {
+    private String emv;
+    private String image;
+    
+    // Getters e Setters
+    public String getEmv() { return emv; }
+    public void setEmv(String emv) { this.emv = emv; }
+    
+    public String getImage() { return image; }
+    public void setImage(String image) { this.image = image; }
+}
+
 public class PaymentCharge {
-    private String chargeId;
+    private String id;
     private Double value;
     private String status;
-    private String qrCodeImage;
-    private String brCode;
-    private String globalID;
-    private String transactionID;
-    private Integer expiresIn;
-    private String expiresDate;
+    private String pixCode;
+    private String pixCodeBase64;
+    private QRCode qrCode;
+    private String publicPaymentUrl;
+    private String expiresAt;
     private String createdAt;
     private String updatedAt;
     
@@ -307,8 +317,11 @@ public class PaymentResponse {
     "chargeId": "pedido-123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
+    "pixCode": "00020126580014br.gov.bcb.pix...",
+    "qrCode": {
+      "emv": "00020126580014br.gov.bcb.pix...",
+      "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    },
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": null,
     "expiresIn": 3600,
@@ -332,8 +345,11 @@ public class PaymentResponse {
     "chargeId": "pedido-123",
     "value": 10.50,
     "status": "COMPLETED",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
+    "pixCode": "00020126580014br.gov.bcb.pix...",
+    "qrCode": {
+      "emv": "00020126580014br.gov.bcb.pix...",
+      "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    },
     "globalID": "550e8400-e29b-41d4-a716-446655440000",
     "transactionID": "E1234567820240101120000",
     "expiresIn": 3600,

@@ -164,17 +164,18 @@ if __name__ == "__main__":
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "id": "flow_123_1704067200000_abc123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionID": null,
-    "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:00:00Z"
+    "pixCode": "00020126580014br.gov.bcb.pix...",
+    "pixCodeBase64": "MDAwMjAxMjY1ODAwMTRicjpnb3YuYmNiLnBpeC4uLg==",
+    "qrCode": {
+      "emv": "00020126580014br.gov.bcb.pix...",
+      "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    },
+    "publicPaymentUrl": "https://flowapplications.com.br/pagamento-publico/flow_123_1704067200000_abc123",
+    "expiresAt": "2024-01-01T12:00:00.000Z",
+    "createdAt": "2024-01-01T11:00:00.000Z"
   }
 }
 ```
@@ -189,17 +190,20 @@ if __name__ == "__main__":
 {
   "success": true,
   "charge": {
-    "correlationID": "pedido-123",
+    "id": "flow_123_1704067200000_abc123",
+    "correlationID": "flow_123_1704067200000_abc123",
     "value": 10.50,
-    "status": "COMPLETED",
-    "qrCodeImage": "https://www.flowapplications.com.br/api/v1/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionID": "E1234567820240101120000",
-    "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:05:30Z"
+    "status": "PAID",
+    "paymentMethods": {
+      "pix": {
+        "status": "PAID",
+        "brCode": "00020126580014br.gov.bcb.pix...",
+        "transactionID": "pix_transaction_123"
+      }
+    },
+    "expiresAt": "2024-01-01T12:00:00.000Z",
+    "createdAt": "2024-01-01T11:00:00.000Z",
+    "updatedAt": "2024-01-01T11:05:00.000Z"
   }
 }
 ```
@@ -213,7 +217,7 @@ if __name__ == "__main__":
 ```json
 {
   "success": false,
-  "error": "correlationID e value são obrigatórios"
+  "error": "Valor inválido. Deve ser um número maior que zero."
 }
 ```
 
@@ -227,26 +231,27 @@ if __name__ == "__main__":
 # criar_pagamento.py
 from flowpay import FlowPayAPI
 
-def criar_pagamento(correlation_id: str, valor: float, comentario: str = None):
+def criar_pagamento(valor: float, descricao: str = None):
     """Cria um pagamento PIX"""
     api = FlowPayAPI()
     
     try:
         data = {
-            "correlationID": correlation_id,
             "value": valor
         }
         
-        if comentario:
-            data["comment"] = comentario
+        if descricao:
+            data["description"] = descricao
         
         resultado = api.create_payment(**data)
         
         if resultado.get("success") and resultado.get("charge"):
             charge = resultado["charge"]
             print(f"✅ Pagamento criado com sucesso!")
-            print(f"🔲 QR Code: {charge['qrCodeImage']}")
-            print(f"📋 BR Code: {charge['brCode']}")
+            print(f"🆔 Charge ID: {charge['id']}")
+            print(f"🔲 QR Code (base64): {charge['qrCode']['image'][:50]}...")
+            print(f"📋 PIX Code: {charge['pixCode']}")
+            print(f"🔗 Link Público: {charge['publicPaymentUrl']}")
             return charge
         else:
             raise Exception(resultado.get("error", "Erro desconhecido"))
@@ -258,7 +263,6 @@ def criar_pagamento(correlation_id: str, valor: float, comentario: str = None):
 # Exemplo de uso
 if __name__ == "__main__":
     pagamento = criar_pagamento(
-        "pedido-123",
         10.50,
         "Pagamento do pedido #123"
     )
@@ -280,16 +284,15 @@ def criar_pagamento():
         data = request.get_json()
         
         # Validação
-        if not data.get("correlationID") or not data.get("value"):
+        if not data.get("value") or data.get("value") <= 0:
             return jsonify({
                 "success": False,
-                "error": "correlationID e value são obrigatórios"
+                "error": "value é obrigatório e deve ser maior que zero"
             }), 400
         
         resultado = api.create_payment(
-            correlation_id=data["correlationID"],
             value=data["value"],
-            comment=data.get("comment"),
+            description=data.get("description"),
             expiresIn=data.get("expiresIn"),
             customer=data.get("customer")
         )
@@ -299,11 +302,11 @@ def criar_pagamento():
             return jsonify({
                 "success": True,
                 "pagamento": {
-                    "correlationID": charge["correlationID"],
-                    "qrCode": charge["qrCodeImage"],
-                    "brCode": charge["brCode"],
-                    "link": charge["qrCodeImage"],
-                    "expiraEm": charge.get("expiresDate")
+                    "id": charge["id"],
+                    "qrCode": charge["qrCode"]["image"],
+                    "pixCode": charge["pixCode"],
+                    "link": charge["publicPaymentUrl"],
+                    "expiraEm": charge.get("expiresAt")
                 }
             }), 200
         else:
@@ -358,16 +361,15 @@ def criar_pagamento(request):
     try:
         data = json.loads(request.body)
         
-        if not data.get("correlationID") or not data.get("value"):
+        if not data.get("value") or data.get("value") <= 0:
             return JsonResponse({
                 "success": False,
-                "error": "correlationID e value são obrigatórios"
+                "error": "value é obrigatório e deve ser maior que zero"
             }, status=400)
         
         resultado = api.create_payment(
-            correlation_id=data["correlationID"],
             value=data["value"],
-            comment=data.get("comment"),
+            description=data.get("description"),
             expiresIn=data.get("expiresIn"),
             customer=data.get("customer")
         )
@@ -377,10 +379,10 @@ def criar_pagamento(request):
             return JsonResponse({
                 "success": True,
                 "pagamento": {
-                    "correlationID": charge["correlationID"],
-                    "qrCode": charge["qrCodeImage"],
-                    "brCode": charge["brCode"],
-                    "link": charge["qrCodeImage"]
+                    "id": charge["id"],
+                    "qrCode": charge["qrCode"]["image"],
+                    "pixCode": charge["pixCode"],
+                    "link": charge["publicPaymentUrl"]
                 }
             }, status=200)
         else:
@@ -437,7 +439,7 @@ def verificar_pagamento(correlation_id: str):
             print(f"📊 Status: {charge['status']}")
             print(f"💰 Valor: R$ {charge['value']:.2f}")
             
-            if charge["status"] == "COMPLETED":
+            if charge["status"] in ["PAID", "CONFIRMED", "COMPLETED"]:
                 print("✅ Pagamento confirmado!")
                 print(f"🆔 Transaction ID: {charge['transactionID']}")
             elif charge["status"] == "EXPIRED":
@@ -475,7 +477,7 @@ def aguardar_pagamento(correlation_id: str, intervalo: int = 5, timeout: int = 3
                 charge = resultado["charge"]
                 status = charge["status"]
                 
-                if status == "COMPLETED":
+                if status in ["PAID", "CONFIRMED", "COMPLETED"]:
                     print("✅ Pagamento confirmado!")
                     return charge
                 elif status == "EXPIRED":
@@ -519,12 +521,9 @@ class EcommercePagamento:
     
     def criar_pagamento_pedido(self, pedido_id: str, valor: float, cliente: Optional[Dict] = None):
         """Cria pagamento PIX para um pedido"""
-        correlation_id = f"pedido-{pedido_id}"
-        
         data = {
-            "correlationID": correlation_id,
             "value": valor,
-            "comment": f"Pagamento do pedido #{pedido_id}",
+            "description": f"Pagamento do pedido #{pedido_id}",
             "expiresIn": 3600  # 1 hora
         }
         
@@ -534,24 +533,19 @@ class EcommercePagamento:
                 "email": cliente.get("email"),
                 "phone": cliente.get("telefone"),
             }
-            
-            if cliente.get("cpf"):
-                data["customer"]["taxID"] = {
-                    "taxID": cliente["cpf"],
-                    "type": "BR:CPF"
-                }
         
         resultado = self.api.create_payment(**data)
         
         if resultado.get("success") and resultado.get("charge"):
+            charge = resultado["charge"]
             return {
                 "success": True,
                 "pagamento": {
-                    "correlationID": resultado["charge"]["correlationID"],
-                    "qrCode": resultado["charge"]["qrCodeImage"],
-                    "brCode": resultado["charge"]["brCode"],
-                    "link": resultado["charge"]["qrCodeImage"],
-                    "expiraEm": resultado["charge"].get("expiresDate")
+                    "id": charge["id"],
+                    "qrCode": charge["qrCode"]["image"],
+                    "pixCode": charge["pixCode"],
+                    "link": charge["publicPaymentUrl"],
+                    "expiraEm": charge.get("expiresAt")
                 }
             }
         else:
@@ -560,17 +554,18 @@ class EcommercePagamento:
                 "error": resultado.get("error")
             }
     
-    def verificar_pagamento_pedido(self, pedido_id: str):
-        """Verifica se o pedido foi pago"""
-        correlation_id = f"pedido-{pedido_id}"
-        resultado = self.api.verify_payment(correlation_id)
+    def verificar_pagamento_pedido(self, charge_id: str):
+        """Verifica se o pagamento foi pago"""
+        resultado = self.api.verify_payment(charge_id)
         
         if resultado.get("success") and resultado.get("charge"):
             charge = resultado["charge"]
+            status = charge.get("status") or charge.get("paymentMethods", {}).get("pix", {}).get("status")
+            is_paid = status in ["PAID", "CONFIRMED", "COMPLETED"]
             return {
-                "pago": charge["status"] == "COMPLETED",
-                "status": charge["status"],
-                "transactionID": charge.get("transactionID")
+                "pago": is_paid,
+                "status": status,
+                "transactionID": charge.get("paymentMethods", {}).get("pix", {}).get("transactionID")
             }
         else:
             return {
@@ -597,8 +592,10 @@ if __name__ == "__main__":
     
     print(pagamento)
     
-    # Verificar pagamento
-    status = ecommerce.verificar_pagamento_pedido("123")
+    # Verificar pagamento (use o charge.id retornado acima)
+    charge_id = pagamento["pagamento"]["id"] if pagamento.get("success") else None
+    if charge_id:
+        status = ecommerce.verificar_pagamento_pedido(charge_id)
     print(status)
 ```
 

@@ -150,17 +150,18 @@ class FlowPayAPI {
 {
   "success": true,
   "charge": {
-    "chargeId": "pedido-123",
+    "id": "flow_123_1704067200000_abc123",
     "value": 10.50,
     "status": "ACTIVE",
-    "qrCodeImage": "https://flowapplications.com.br/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionID": null,
-    "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:00:00Z"
+    "pixCode": "00020126580014br.gov.bcb.pix...",
+    "pixCodeBase64": "MDAwMjAxMjY1ODAwMTRicjpnb3YuYmNiLnBpeC4uLg==",
+    "qrCode": {
+      "emv": "00020126580014br.gov.bcb.pix...",
+      "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    },
+    "publicPaymentUrl": "https://flowapplications.com.br/pagamento-publico/flow_123_1704067200000_abc123",
+    "expiresAt": "2024-01-01T12:00:00.000Z",
+    "createdAt": "2024-01-01T11:00:00.000Z"
   }
 }
 ```
@@ -175,17 +176,20 @@ class FlowPayAPI {
 {
   "success": true,
   "charge": {
-    "chargeId": "pedido-123",
+    "id": "flow_123_1704067200000_abc123",
+    "correlationID": "flow_123_1704067200000_abc123",
     "value": 10.50,
-    "status": "COMPLETED",
-    "qrCodeImage": "https://flowapplications.com.br/payment/qrcode/pedido-123",
-    "brCode": "00020126580014br.gov.bcb.pix...",
-    "globalID": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionID": "E1234567820240101120000",
-    "expiresIn": 3600,
-    "expiresDate": "2024-12-31T23:59:59Z",
-    "createdAt": "2024-01-01T10:00:00Z",
-    "updatedAt": "2024-01-01T10:05:30Z"
+    "status": "PAID",
+    "paymentMethods": {
+      "pix": {
+        "status": "PAID",
+        "brCode": "00020126580014br.gov.bcb.pix...",
+        "transactionID": "pix_transaction_123"
+      }
+    },
+    "expiresAt": "2024-01-01T12:00:00.000Z",
+    "createdAt": "2024-01-01T11:00:00.000Z",
+    "updatedAt": "2024-01-01T11:05:00.000Z"
   }
 }
 ```
@@ -349,14 +353,14 @@ class FlowPayAPI {
                         
                         <div class="qr-code">
                             <h3>QR Code PIX</h3>
-                            <img src="${charge.qrCodeImage}" alt="QR Code PIX">
+                            <img src="${charge.qrCode.image}" alt="QR Code PIX">
                         </div>
                         
                         <p><strong>BR Code:</strong></p>
-                        <textarea readonly style="width: 100%; height: 60px; font-family: monospace;">${charge.brCode}</textarea>
+                        <textarea readonly style="width: 100%; height: 60px; font-family: monospace;">${charge.pixCode}</textarea>
                         
                         <p><strong>Link de Pagamento:</strong></p>
-                        <a href="${charge.qrCodeImage}" target="_blank">Ver QR Code</a>
+                        <a href="${charge.publicPaymentUrl}" target="_blank">Ver Página de Pagamento</a>
                     `;
                 } else {
                     throw new Error(resultado.error || 'Erro desconhecido');
@@ -399,9 +403,10 @@ async function criarPagamento(apiToken, chargeId, valor, comentario = null) {
         if (resultado.success && resultado.charge) {
             const charge = resultado.charge;
             console.log('✅ Pagamento criado com sucesso!');
-            console.log('🔲 QR Code URL:', charge.qrCodeImage);
-            console.log('🔲 QR Code:', charge.qrCodeImage);
-            console.log('📋 BR Code:', charge.brCode);
+            console.log('🆔 Charge ID:', charge.id);
+            console.log('🔲 QR Code (base64):', charge.qrCode.image.substring(0, 50) + '...');
+            console.log('📋 PIX Code:', charge.pixCode);
+            console.log('🔗 Link Público:', charge.publicPaymentUrl);
             return charge;
         } else {
             throw new Error(resultado.error || 'Erro desconhecido');
